@@ -91,13 +91,14 @@ class MLP(object):
     def L2(self):
         return sum([(layer.W ** 2).sum() for layer in self.layers])
 
-    def train(self, train_set, valid_set, learning_rate=0.01, L1_reg=0.00,
-            L2_reg=0.0001, n_epochs=1000, batch_size=20, patience=10000,
-            patience_increase=2, improvement_threshold=0.995):
+    def train(self, train_set, valid_set, test_set, learning_rate=0.01,
+            L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, batch_size=20,
+            patience=10000, patience_increase=2, improvement_threshold=0.995):
         train_set_x, train_set_y = train_set
         valid_set_x, valid_set_y = valid_set
+        test_set_x, test_set_y = test_set
 
-        ### Set up Theano train and validate functions
+        ### Set up Theano functions
         cost = (
             self.neg_log_likelihood(self.y)
             + L1_reg * self.L1()
@@ -119,7 +120,7 @@ class MLP(object):
             }
         )
         
-        validate_func = theano.function(
+        self.validate_func = theano.function(
             inputs=[self.bindex],
             outputs=self.errors(self.y),
             givens={
@@ -127,10 +128,20 @@ class MLP(object):
                 self.y: valid_set_y[self.bindex * batch_size:(self.bindex + 1) * batch_size]
             }
         )
+
+        self.test_func = theano.function(
+            inputs=[self.bindex],
+            outputs=self.errors(self.y),
+            givens={
+                self.x: test_set_x[self.bindex * batch_size:(self.bindex + 1) * batch_size],
+                self.y: test_set_y[self.bindex * batch_size:(self.bindex + 1) * batch_size]
+            }
+        )
   
         ### 
         n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
         n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
+        n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
     
         validation_frequency = min(n_train_batches, patience / 2)
     
@@ -149,7 +160,7 @@ class MLP(object):
                 iter = (epoch - 1) * n_train_batches + bindex
                 if (iter + 1) % validation_frequency == 0:
                     # compute zero-one loss on validation set
-                    validation_losses = [validate_func(i) for i
+                    validation_losses = [self.validate_func(i) for i
                                          in xrange(n_valid_batches)]
                     this_validation_loss = np.mean(validation_losses)
 
@@ -178,14 +189,14 @@ class MLP(object):
                         best_iter = iter
 
                         # test it on the test set
-                        #test_losses = [test_model(i) for i
-                        #               in xrange(n_test_batches)]
-                        #test_score = np.mean(test_losses)
-                        #
-                        #print(('     epoch %i, minibatch %i/%i, test error of '
-                        #       'best model %f %%') %
-                        #      (epoch, bindex + 1, n_train_batches,
-                        #       test_score * 100.))
+                        test_losses = [self.test_func(i) for i
+                                       in xrange(n_test_batches)]
+                        test_score = np.mean(test_losses)
+
+                        print(('     epoch %i, minibatch %i/%i, test error of '
+                               'best model %f %%') %
+                              (epoch, bindex + 1, n_train_batches,
+                               test_score * 100.))
 
                 if patience <= iter:
                     done_looping = True
@@ -207,4 +218,4 @@ if __name__ == '__main__':
     mlp = MLP(rng, 28*28, [500], 10)
 
     print "Training."
-    mlp.train(datasets[0], datasets[1])
+    mlp.train(datasets[0], datasets[1], datasets[2])
