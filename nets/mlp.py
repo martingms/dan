@@ -81,10 +81,9 @@ class MLP(object):
                 'y should have the same shape as self.y_pred',
                 ('y', y.type, 'y_pred', self.y_pred.type)
             )
-        if y.dtype.startswith('int'):
-            return T.mean(T.neq(self.y_pred, y))
-        else:
+        if not y.dtype.startswith('int'):
             raise NotImplementedError()
+        return T.mean(T.neq(self.y_pred, y))
 
     def L1(self):
         return sum([abs(layer.W).sum() for layer in self.layers])
