@@ -27,49 +27,53 @@ class Layer(object):
 
 class MLP(object):
     """TODO: Write docstring"""
-    def __init__(self, rng, n_in, n_hidden, n_out):
+    def __init__(self, rng, n_in, n_hidden_list, n_out):
         ### Set up Theano variables
         self.bindex = T.lscalar()
         self.x = T.matrix('x')
         self.y = T.ivector('y')
 
         ### Wire up network
-        self.hidden_layer = Layer(
-            input=self.x,
-            n_in=n_in,
-            n_nodes=n_hidden,
-            W=np.asarray(
-                # Numbers from:
-                # Y. Bengio, X. Glorot, Understanding the difficulty of
-                # training deep feedforward neuralnetworks, AISTATS 2010
-                rng.uniform(
-                    low=-np.sqrt(6. / (n_in + n_hidden)),
-                    high=np.sqrt(6. / (n_in + n_hidden)),
-                    size=(n_in, n_hidden)
-                ),
-                dtype=theano.config.floatX
-            ),
-            activation=T.tanh
-        )
+        self.layers = []
 
-        self.log_reg_layer = Layer(
-            input=self.hidden_layer.output,
-            n_in=n_hidden,
+        # Hidden layers
+        input = self.x
+        for n_layer in n_hidden_list:
+            layer = Layer(
+                input=input,
+                n_in=n_in,
+                n_nodes=n_layer,
+                W=np.asarray(
+                    # Numbers from
+                    # Y. Bengio, X. Glorot, Understanding the difficulty of
+                    # training deep feedforward neuralnetworks, AISTATS 2010
+                    rng.uniform(
+                        low=-np.sqrt(6. / (n_in + n_layer)),
+                        high=np.sqrt(6. / (n_in + n_layer)),
+                        size=(n_in, n_layer)
+                    ),
+                    dtype=theano.config.floatX
+                ),
+                activation=T.tanh
+            )
+            input = layer.output
+            n_in = n_layer
+            self.layers.append(layer)
+
+        # Softmax output layer
+        self.layers.append(Layer(
+            input=input,
+            n_in=n_in,
             n_nodes=n_out,
             activation=T.nnet.softmax
-        )
+        ))
 
-        self.y_pred = T.argmax(self.log_reg_layer.output, axis=1)
+        self.y_pred = T.argmax(self.layers[-1].output, axis=1)
 
-        ### Set up Theano functions
-
-        #self.test_func = theano.function(
-        #    inputs=[x, y],
-        #    outputs=self.errors(y)
-        #)
+        self.params = [param for layer in self.layers for param in layer.params]
 
     def neg_log_likelihood(self, y):
-        return -T.mean(T.log(self.log_reg_layer.output)[T.arange(y.shape[0]), y]) 
+        return -T.mean(T.log(self.layers[-1].output)[T.arange(y.shape[0]), y])
 
     def errors(self, y):
         if y.ndim != self.y_pred.ndim:
@@ -83,10 +87,10 @@ class MLP(object):
             raise NotImplementedError()
 
     def L1(self):
-        return abs(self.hidden_layer.W).sum() + abs(self.log_reg_layer.W).sum()
+        return sum([abs(layer.W).sum() for layer in self.layers])
 
     def L2(self):
-        return (self.hidden_layer.W ** 2).sum() + (self.log_reg_layer.W ** 2).sum()
+        return sum([(layer.W ** 2).sum() for layer in self.layers])
 
     def train(self, train_set, valid_set, learning_rate=0.01, L1_reg=0.00,
             L2_reg=0.0001, n_epochs=1000, batch_size=20, patience=10000,
@@ -100,11 +104,10 @@ class MLP(object):
             + L1_reg * self.L1()
             + L2_reg * self.L2()
         )
-        params = self.hidden_layer.params + self.log_reg_layer.params
-        gparams = [T.grad(cost, param) for param in params]
+        gparams = [T.grad(cost, param) for param in self.params]
         updates = [
             (param, param - learning_rate * gparam)
-            for param, gparam in zip(params, gparams)
+            for param, gparam in zip(self.params, gparams)
         ]
 
         train_func = theano.function(
@@ -202,7 +205,7 @@ if __name__ == '__main__':
     rng = np.random.RandomState(123123)
 
     print "Generating model."
-    mlp = MLP(rng, 28*28, 500, 10)
+    mlp = MLP(rng, 28*28, [500], 10)
 
     print "Training."
     mlp.train(datasets[0], datasets[1])
