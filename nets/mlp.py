@@ -204,9 +204,8 @@ class MLP(object):
 
         end_time = time.clock()
         print(('Optimization complete. Best validation score of %f %% '
-               'obtained at iteration %i, with test performance DUNNO YET %%') %
-              #(best_validation_loss * 100., best_iter + 1, test_score * 100.))
-              (best_validation_loss * 100., best_iter + 1))
+               'obtained at iteration %i, with test performance %f %%') %
+              (best_validation_loss * 100., best_iter + 1, test_score * 100.))
 
 if __name__ == '__main__':
     print "Loading dataset."
