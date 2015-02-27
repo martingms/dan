@@ -7,27 +7,59 @@ import theano.tensor as T
 from mnist import load_data
 
 class Layer(object):
-    """A generic MLP layer"""
+    """A generic perceptron layer"""
     def __init__(self, input, n_in, n_nodes, W=None, b=None,
             activation=lambda x: x):
-        self.input = input
-
         if W == None:
             W = np.zeros((n_in, n_nodes), dtype=theano.config.floatX)
+            W = theano.shared(value=W, name='W', borrow=True)
         if b == None:
             b = np.zeros((n_nodes,), dtype=theano.config.floatX)
+            b = theano.shared(value=b, name='b', borrow=True)
 
-        # Do we want to borrow here?
-        self.W = theano.shared(value=W, name='W', borrow=True)
-        self.b = theano.shared(value=b, name='b', borrow=True)
+        self.W = W
+        self.b = b
 
         self.output = activation(T.dot(input, self.W) + self.b)
 
         self.params = [self.W, self.b]
 
+    @staticmethod
+    def generate_W(rng, n_in, n_nodes):
+       return theano.shared(value=np.asarray(
+                      # Numbers from
+                      # Y. Bengio, X. Glorot, Understanding the difficulty of
+                      # training deep feedforward neuralnetworks, AISTATS 2010
+                      rng.uniform(
+                          low=-np.sqrt(6. / (n_in + n_nodes)),
+                          high=np.sqrt(6. / (n_in + n_nodes)),
+                          size=(n_in, n_nodes)
+                      ),
+                      dtype=theano.config.floatX
+                  ),
+                  name='W', borrow=True)
+
+class DropoutLayer(Layer):
+    """
+    Perceptron layer that implements the dropout regularization method described
+    in N. Srivastava, G. Hinton, et al., Dropout: A simple way to prevent neural
+    networks from overfitting (JMLR 2014).
+    """
+    def __init__(self, input, n_in, n_nodes, W=None, b=None,
+            activation=lambda x: x, dropout_rate=0.5):
+        srng = T.shared_randomstreams.RandomStreams(91231) # TODO: Seed properly?
+        dropout_mask = srng.binomial(n=1, p=1-dropout_rate, size=input.shape)
+
+        # Keeps stuff on GPU
+        input *= T.cast(dropout_mask, theano.config.floatX)
+
+        super(DropoutLayer, self).__init__(input, n_in, n_nodes, W, b,
+                activation)
+
 class MLP(object):
     """TODO: Write docstring"""
-    def __init__(self, rng, n_in, n_hidden_list, n_out):
+    def __init__(self, rng, n_in, n_hidden_list, n_out, dropout_rate_list):
+        assert len(n_hidden_list) + 1 == len(dropout_rate_list)
         ### Set up Theano variables
         self.bindex = T.lscalar()
         self.x = T.matrix('x')
@@ -35,45 +67,65 @@ class MLP(object):
 
         ### Wire up network
         self.layers = []
+        self.dropout_layers = []
 
         # Hidden layers
+        dropout_input = self.x
         input = self.x
-        for n_layer in n_hidden_list:
+        for n_layer, dropout_rate in zip(n_hidden_list, dropout_rate_list):
+            dropout_layer = DropoutLayer(
+                input=dropout_input,
+                n_in=n_in,
+                n_nodes=n_layer,
+                W=Layer.generate_W(rng, n_in, n_layer),
+                activation=T.tanh,
+                dropout_rate=dropout_rate
+            )
+            dropout_input = dropout_layer.output
+            self.dropout_layers.append(dropout_layer)
             layer = Layer(
                 input=input,
                 n_in=n_in,
                 n_nodes=n_layer,
-                W=np.asarray(
-                    # Numbers from
-                    # Y. Bengio, X. Glorot, Understanding the difficulty of
-                    # training deep feedforward neuralnetworks, AISTATS 2010
-                    rng.uniform(
-                        low=-np.sqrt(6. / (n_in + n_layer)),
-                        high=np.sqrt(6. / (n_in + n_layer)),
-                        size=(n_in, n_layer)
-                    ),
-                    dtype=theano.config.floatX
-                ),
+                # Scaling based on dropout.
+                # TODO: per layer
+                W=dropout_layer.W * (1-dropout_rate),
+                b=dropout_layer.b,
                 activation=T.tanh
             )
+            self.layers.append(layer)
             input = layer.output
             n_in = n_layer
-            self.layers.append(layer)
 
         # Softmax output layer
+        self.dropout_layers.append(DropoutLayer(
+            input=dropout_input,
+            n_in=n_in,
+            n_nodes=n_out,
+            W=Layer.generate_W(rng, n_in, n_out),
+            activation=T.nnet.softmax,
+            dropout_rate=dropout_rate_list[-1]
+        ))
         self.layers.append(Layer(
             input=input,
             n_in=n_in,
             n_nodes=n_out,
+            W=self.dropout_layers[-1].W,
+            b=self.dropout_layers[-1].b,
             activation=T.nnet.softmax
         ))
 
+        #output_printed = theano.printing.Print('output')(self.layers[-1].output)
+        #self.y_pred = T.argmax(output_printed, axis=1)
         self.y_pred = T.argmax(self.layers[-1].output, axis=1)
 
-        self.params = [param for layer in self.layers for param in layer.params]
+        self.params = [param for layer in self.dropout_layers
+        #self.params = [param for layer in self.layers
+                             for param in layer.params]
 
     def neg_log_likelihood(self, y):
-        return -T.mean(T.log(self.layers[-1].output)[T.arange(y.shape[0]), y])
+        return -T.mean(T.log(self.dropout_layers[-1].output)[T.arange(y.shape[0]), y])
+        #return -T.mean(T.log(self.layers[-1].output)[T.arange(y.shape[0]), y])
 
     def errors(self, y):
         if y.ndim != self.y_pred.ndim:
@@ -83,6 +135,9 @@ class MLP(object):
             )
         if not y.dtype.startswith('int'):
             raise NotImplementedError()
+        #y_printed = theano.printing.Print('y')(y)
+        #y_pred_printed = theano.printing.Print('y_pred')(self.y_pred)
+        #result_printed = theano.printing.Print('result')(T.mean(T.neq(y_pred_printed, y_printed)))
         return T.mean(T.neq(self.y_pred, y))
 
     def L1(self):
@@ -137,6 +192,11 @@ class MLP(object):
                 self.y: test_set_y[self.bindex * batch_size:(self.bindex + 1) * batch_size]
             }
         )
+
+        #theano.printing.pydotprint(train_func, outfile="train_func.png",
+        #        var_with_name_simple=True)
+        #theano.printing.pydotprint(self.validate_func, outfile="validate_func.png",
+        #        var_with_name_simple=True)
   
         ### 
         n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
@@ -211,10 +271,11 @@ if __name__ == '__main__':
     print "Loading dataset."
     datasets = load_data('mnist.pkl.gz')
 
-    rng = np.random.RandomState(123123)
+    rng = np.random.RandomState(1234)
 
     print "Generating model."
-    mlp = MLP(rng, 28*28, [500], 10)
+    mlp = MLP(rng, 28*28, [500], 10, [0.0, 0.0])
 
     print "Training."
-    mlp.train(datasets[0], datasets[1], datasets[2])
+    mlp.train(datasets[0], datasets[1], datasets[2], L1_reg=0.0, L2_reg=0.0, n_epochs=10000)
+    #mlp.train(datasets[0], datasets[1], datasets[2])
