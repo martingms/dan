@@ -48,7 +48,7 @@ class DropoutLayer(Layer):
     """
     def __init__(self, input, n_in, n_nodes, W=None, b=None,
             activation=lambda x: x, dropout_rate=0.5):
-        srng = T.shared_randomstreams.RandomStreams(91231) # TODO: Seed properly?
+        srng = T.shared_randomstreams.RandomStreams(int(time.time() * 1000))
         dropout_mask = srng.binomial(n=1, p=1-dropout_rate, size=input.shape)
 
         # Keeps stuff on GPU
@@ -294,7 +294,7 @@ if __name__ == '__main__':
     print "Loading dataset."
     datasets = load_data('mnist.pkl.gz')
 
-    rng = np.random.RandomState(1234)
+    rng = np.random.RandomState(int(time.time()*1000))
 
     print "Generating model."
     mlp = MLP(rng, 28*28, [500], 10, [0.0, 0.0])
