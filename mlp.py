@@ -1,4 +1,5 @@
 import time
+from collections import OrderedDict
 
 import numpy as np
 import theano
@@ -149,7 +150,7 @@ class MLP(object):
     def train(self, train_set, valid_set, test_set, initial_learning_rate=0.01,
             learning_rate_decay=1.0, L1_reg=0.00, L2_reg=0.0001,
             n_epochs=1000, batch_size=20, patience=10000, patience_increase=2,
-            improvement_threshold=0.995):
+            improvement_threshold=0.995, max_col_norm=15):
         train_set_x, train_set_y = train_set
         valid_set_x, valid_set_y = valid_set
         test_set_x, test_set_y = test_set
@@ -165,10 +166,16 @@ class MLP(object):
             + L2_reg * self.L2()
         )
         gparams = [T.grad(cost, param) for param in self.params]
-        updates = [
-            (param, param - learning_rate * gparam)
-            for param, gparam in zip(self.params, gparams)
-        ]
+
+        updates = OrderedDict()
+        for param, gparam in zip(self.params, gparams):
+            updates[param] = param - learning_rate * gparam
+
+        for param, stepped_param in updates.iteritems():
+            col_norms = T.sqrt(T.sum(T.sqr(stepped_param), axis=0))
+            desired_norms = T.clip(col_norms, 0, T.sqrt(max_col_norm))
+            scale = desired_norms / (1e-7 + col_norms)
+            updates[param] = stepped_param * scale
 
         train_func = theano.function(
             inputs=[self.bindex],
