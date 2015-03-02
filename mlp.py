@@ -172,11 +172,13 @@ class MLP(object):
         for param, gparam in zip(self.params, gparams):
             updates[param] = param - learning_rate * gparam
 
-        for param, stepped_param in updates.iteritems():
-            col_norms = T.sqrt(T.sum(T.sqr(stepped_param), axis=0))
-            desired_norms = T.clip(col_norms, 0, T.sqrt(max_col_norm))
-            scale = desired_norms / (1e-7 + col_norms)
-            updates[param] = stepped_param * scale
+        # Max-norm regularization
+        if max_col_norm is not None:
+            for param, stepped_param in updates.iteritems():
+                col_norms = T.sqrt(T.sum(T.sqr(stepped_param), axis=0))
+                desired_norms = T.clip(col_norms, 0, T.sqrt(max_col_norm))
+                scale = desired_norms / (1e-7 + col_norms)
+                updates[param] = stepped_param * scale
 
         train_func = theano.function(
             inputs=[self.bindex],
