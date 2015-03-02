@@ -147,10 +147,11 @@ class MLP(object):
     def L2(self):
         return sum([(layer.W ** 2).sum() for layer in self.layers])
 
-    def train(self, train_set, valid_set, test_set, initial_learning_rate=0.01,
-            learning_rate_decay=1.0, L1_reg=0.00, L2_reg=0.0001,
-            n_epochs=1000, batch_size=20, patience=10000, patience_increase=2,
-            improvement_threshold=0.995, max_col_norm=15):
+    def train(self, train_set, valid_set, test_set, initial_learning_rate=0.25,
+            learning_rate_decay=0.998, L1_reg=0.00, L2_reg=0.0001,
+            n_epochs=1000, batch_size=20, perform_early_stopping=False,
+            patience=10000, patience_increase=2, improvement_threshold=0.995,
+            max_col_norm=15):
         train_set_x, train_set_y = train_set
         valid_set_x, valid_set_y = valid_set
         test_set_x, test_set_y = test_set
@@ -276,7 +277,7 @@ class MLP(object):
                               (epoch, bindex + 1, n_train_batches,
                                test_score * 100.))
 
-                if patience <= iter:
+                if patience <= iter and perform_early_stopping:
                     done_looping = True
                     break
 
