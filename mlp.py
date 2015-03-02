@@ -148,7 +148,7 @@ class MLP(object):
         return sum([(layer.W ** 2).sum() for layer in self.layers])
 
     def train(self, train_set, valid_set, test_set, initial_learning_rate=0.25,
-            learning_rate_decay=0.998, L1_reg=0.00, L2_reg=0.0001,
+            learning_rate_decay=None, L1_reg=0.00, L2_reg=0.0001,
             n_epochs=1000, batch_size=20, perform_early_stopping=False,
             patience=10000, patience_increase=2, improvement_threshold=0.995,
             max_col_norm=15):
@@ -190,10 +190,11 @@ class MLP(object):
             }
         )
 
-        learning_rate_update = theano.function(
-            inputs=[],
-            updates={learning_rate: learning_rate * learning_rate_decay}
-        )
+        if learning_rate_decay is not None:
+            learning_rate_update = theano.function(
+                inputs=[],
+                updates={learning_rate: learning_rate * learning_rate_decay}
+            )
         
         validate_func = theano.function(
             inputs=[self.bindex],
@@ -283,7 +284,8 @@ class MLP(object):
                     done_looping = True
                     break
 
-            learning_rate_update()
+            if learning_rate_decay is not None:
+                learning_rate_update()
 
         end_time = time.clock()
         print(('Optimization complete. Best validation score of %f %% '
