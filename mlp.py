@@ -195,7 +195,7 @@ class MLP(object):
             updates={learning_rate: learning_rate * learning_rate_decay}
         )
         
-        self.validate_func = theano.function(
+        validate_func = theano.function(
             inputs=[self.bindex],
             outputs=self.errors(self.y),
             givens={
@@ -204,7 +204,7 @@ class MLP(object):
             }
         )
 
-        self.test_func = theano.function(
+        test_func = theano.function(
             inputs=[self.bindex],
             outputs=self.errors(self.y),
             givens={
@@ -215,7 +215,7 @@ class MLP(object):
 
         #theano.printing.pydotprint(train_func, outfile="train_func.png",
         #        var_with_name_simple=True)
-        #theano.printing.pydotprint(self.validate_func, outfile="validate_func.png",
+        #theano.printing.pydotprint(validate_func, outfile="validate_func.png",
         #        var_with_name_simple=True)
   
         ### 
@@ -240,7 +240,7 @@ class MLP(object):
                 iter = (epoch - 1) * n_train_batches + bindex
                 if (iter + 1) % validation_frequency == 0:
                     # compute zero-one loss on validation set
-                    validation_losses = [self.validate_func(i) for i
+                    validation_losses = [validate_func(i) for i
                                          in xrange(n_valid_batches)]
                     this_validation_loss = np.mean(validation_losses)
 
@@ -270,7 +270,7 @@ class MLP(object):
                         best_iter = iter
 
                         # test it on the test set
-                        test_losses = [self.test_func(i) for i
+                        test_losses = [test_func(i) for i
                                        in xrange(n_test_batches)]
                         test_score = np.mean(test_losses)
 
