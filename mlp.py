@@ -146,12 +146,17 @@ class MLP(object):
     def L2(self):
         return sum([(layer.W ** 2).sum() for layer in self.layers])
 
-    def train(self, train_set, valid_set, test_set, learning_rate=0.01,
-            L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, batch_size=20,
-            patience=10000, patience_increase=2, improvement_threshold=0.995):
+    def train(self, train_set, valid_set, test_set, initial_learning_rate=0.01,
+            learning_rate_decay=1.0, L1_reg=0.00, L2_reg=0.0001,
+            n_epochs=1000, batch_size=20, patience=10000, patience_increase=2,
+            improvement_threshold=0.995):
         train_set_x, train_set_y = train_set
         valid_set_x, valid_set_y = valid_set
         test_set_x, test_set_y = test_set
+
+        learning_rate = theano.shared(
+            np.cast[theano.config.floatX](initial_learning_rate)
+        )
 
         ### Set up Theano functions
         cost = (
@@ -173,6 +178,11 @@ class MLP(object):
                 self.x: train_set_x[self.bindex * batch_size:(self.bindex + 1) * batch_size],
                 self.y: train_set_y[self.bindex * batch_size:(self.bindex + 1) * batch_size]
             }
+        )
+
+        learning_rate_update = theano.function(
+            inputs=[],
+            updates={learning_rate: learning_rate * learning_rate_decay}
         )
         
         self.validate_func = theano.function(
@@ -225,14 +235,15 @@ class MLP(object):
                     this_validation_loss = np.mean(validation_losses)
 
                     print(
-                        'epoch %i, minibatch %i/%i, validation error %f %%, iter %i, patience %i' %
+                        'epoch %i, minibatch %i/%i, validation error %f %%, iter %i, patience %i, learning_rate %f' %
                         (
                             epoch,
                             bindex + 1,
                             n_train_batches,
                             this_validation_loss * 100.,
                             iter,
-                            patience
+                            patience,
+                            learning_rate.get_value(borrow=True)
                         )
                     )
 
@@ -261,6 +272,8 @@ class MLP(object):
                 if patience <= iter:
                     done_looping = True
                     break
+
+            learning_rate_update()
 
         end_time = time.clock()
         print(('Optimization complete. Best validation score of %f %% '
