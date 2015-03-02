@@ -293,14 +293,31 @@ class MLP(object):
               (best_validation_loss * 100., best_iter + 1, test_score * 100.))
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', type=int, default=28*28)
+    parser.add_argument('-o', '--output', type=int, default=10)
+    parser.add_argument('-l', '--layers', type=int, nargs='+', default=[800, 800])
+    parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.0, 0.0, 0.0])
+    parser.add_argument('-lr', '--learning-rate', type=float, default=0.01)
+    parser.add_argument('-lrd', '--learning-rate-decay', type=float, default=None)
+    parser.add_argument('-s', '--seed', type=int, default=int(time.time()*1000))
+    parser.add_argument('-l1', '--l1-reg', type=float, default=0.0)
+    parser.add_argument('-l2', '--l2-reg', type=float, default=0.0)
+    args = parser.parse_args()
+    print args
+
     print "Loading dataset."
     datasets = load_data('mnist.pkl.gz')
 
-    rng = np.random.RandomState(int(time.time()*1000))
+    rng = np.random.RandomState(args.seed)
 
     print "Generating model."
-    mlp = MLP(rng, 28*28, [500], 10, [0.0, 0.0])
+    mlp = MLP(rng, args.input, args.layers, args.output, args.dropout_p)
 
     print "Training."
-    mlp.train(datasets[0], datasets[1], datasets[2], L1_reg=0.0, L2_reg=0.0, n_epochs=10000)
-    #mlp.train(datasets[0], datasets[1], datasets[2])
+    mlp.train(datasets[0], datasets[1], datasets[2], L1_reg=args.l1_reg,
+            L2_reg=args.l2_reg, n_epochs=3000,
+            initial_learning_rate=args.learning_rate,
+            learning_rate_decay=args.learning_rate_decay,
+            max_col_norm=None)
