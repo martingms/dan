@@ -48,7 +48,7 @@ class DropoutLayer(Layer):
     """
     def __init__(self, input, n_in, n_nodes, W=None, b=None,
             activation=lambda x: x, dropout_rate=0.5):
-        srng = T.shared_randomstreams.RandomStreams(int(time.time() * 1000))
+        srng = T.shared_randomstreams.RandomStreams(int(time.time()))
         dropout_mask = srng.binomial(n=1, p=1-dropout_rate, size=input.shape)
 
         # Keeps stuff on GPU
@@ -301,7 +301,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.0, 0.0, 0.0])
     parser.add_argument('-lr', '--learning-rate', type=float, default=0.01)
     parser.add_argument('-lrd', '--learning-rate-decay', type=float, default=None)
-    parser.add_argument('-s', '--seed', type=int, default=int(time.time()*1000))
+    parser.add_argument('-s', '--seed', type=int, default=int(time.time()))
     parser.add_argument('-l1', '--l1-reg', type=float, default=0.0)
     parser.add_argument('-l2', '--l2-reg', type=float, default=0.0)
     args = parser.parse_args()
