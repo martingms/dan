@@ -46,9 +46,10 @@ class DropoutLayer(Layer):
     in N. Srivastava, G. Hinton, et al., Dropout: A simple way to prevent neural
     networks from overfitting (JMLR 2014).
     """
-    def __init__(self, input, n_in, n_nodes, W=None, b=None,
+    def __init__(self, rng, input, n_in, n_nodes, W=None, b=None,
             activation=lambda x: x, dropout_rate=0.5):
-        srng = T.shared_randomstreams.RandomStreams(int(time.time()))
+        # Main rng used to seed shared rng. This is probably the easiest way to get determinism.
+        srng = T.shared_randomstreams.RandomStreams(rng.randint(2147483647))
         dropout_mask = srng.binomial(n=1, p=1-dropout_rate, size=input.shape)
 
         # Keeps stuff on GPU
@@ -75,6 +76,7 @@ class MLP(object):
         input = self.x
         for n_layer, dropout_rate in zip(n_hidden_list, dropout_rate_list):
             dropout_layer = DropoutLayer(
+                rng=rng,
                 input=dropout_input,
                 n_in=n_in,
                 n_nodes=n_layer,
@@ -100,6 +102,7 @@ class MLP(object):
 
         # Softmax output layer
         self.dropout_layers.append(DropoutLayer(
+            rng=rng,
             input=dropout_input,
             n_in=n_in,
             n_nodes=n_out,
