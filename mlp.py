@@ -92,7 +92,6 @@ class MLP(object):
                 n_in=n_in,
                 n_nodes=n_layer,
                 # Scaling based on dropout.
-                # TODO: per layer
                 W=dropout_layer.W * (1-dropout_rate),
                 b=dropout_layer.b,
                 activation=T.tanh
@@ -308,6 +307,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--seed', type=int, default=int(time.time()))
     parser.add_argument('-l1', '--l1-reg', type=float, default=0.0)
     parser.add_argument('-l2', '--l2-reg', type=float, default=0.0)
+    parser.add_argument('-m', '--max-col-norm', type=float, default=None)
     args = parser.parse_args()
     print args
 
@@ -324,4 +324,4 @@ if __name__ == '__main__':
             L2_reg=args.l2_reg, n_epochs=3000,
             initial_learning_rate=args.learning_rate,
             learning_rate_decay=args.learning_rate_decay,
-            max_col_norm=None)
+            max_col_norm=args.max_col_norm)
