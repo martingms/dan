@@ -58,8 +58,10 @@ class DropoutLayer(Layer):
 
 class MLP(object):
     """TODO: Write docstring"""
-    def __init__(self, rng, n_in, n_hidden_list, n_out, dropout_rate_list):
+    def __init__(self, rng, n_in, n_hidden_list, n_out, dropout_rate_list,
+            activation_list):
         assert len(n_hidden_list) + 1 == len(dropout_rate_list)
+        assert len(n_hidden_list) == len(activation_list)
         ### Set up Theano variables
         self.bindex = T.lscalar()
         self.x = T.matrix('x')
@@ -75,14 +77,15 @@ class MLP(object):
         # Hidden layers
         dropout_input = self.x
         input = self.x
-        for n_layer, dropout_rate in zip(n_hidden_list, dropout_rate_list):
+        for n_layer, dropout_rate, activation_func in zip(n_hidden_list,
+                dropout_rate_list, activation_list):
             dropout_layer = DropoutLayer(
                 srng=srng,
                 input=dropout_input,
                 n_in=n_in,
                 n_nodes=n_layer,
                 W=Layer.generate_W(rng, n_in, n_layer),
-                activation=T.tanh,
+                activation=activation_func,
                 dropout_rate=dropout_rate
             )
             dropout_input = dropout_layer.output
@@ -94,7 +97,7 @@ class MLP(object):
                 # Scaling based on dropout.
                 W=dropout_layer.W * (1-dropout_rate),
                 b=dropout_layer.b,
-                activation=T.tanh
+                activation=activation_func
             )
             self.layers.append(layer)
             input = layer.output
@@ -317,7 +320,7 @@ if __name__ == '__main__':
     rng = np.random.RandomState(args.seed)
 
     print "Generating model."
-    mlp = MLP(rng, args.input, args.layers, args.output, args.dropout_p)
+    mlp = MLP(rng, args.input, args.layers, args.output, args.dropout_p, [T.tanh, T.tanh])
 
     print "Training."
     mlp.train(datasets[0], datasets[1], datasets[2], L1_reg=args.l1_reg,
