@@ -123,8 +123,6 @@ class MLP(object):
             activation=T.nnet.softmax
         ))
 
-        #output_printed = theano.printing.Print('output')(self.layers[-1].output)
-        #self.y_pred = T.argmax(output_printed, axis=1)
         self.y_pred = T.argmax(self.layers[-1].output, axis=1)
 
         self.params = [param for layer in self.dropout_layers
@@ -144,9 +142,6 @@ class MLP(object):
             )
         if not y.dtype.startswith('int'):
             raise NotImplementedError()
-        #y_printed = theano.printing.Print('y')(y)
-        #y_pred_printed = theano.printing.Print('y_pred')(self.y_pred)
-        #result_printed = theano.printing.Print('result')(T.mean(T.neq(y_pred_printed, y_printed)))
         return T.mean(T.neq(self.y_pred, y))
 
     def L1(self):
@@ -222,11 +217,6 @@ class MLP(object):
             }
         )
 
-        #theano.printing.pydotprint(train_func, outfile="train_func.png",
-        #        var_with_name_simple=True)
-        #theano.printing.pydotprint(validate_func, outfile="validate_func.png",
-        #        var_with_name_simple=True)
-  
         ### 
         n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
         n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
