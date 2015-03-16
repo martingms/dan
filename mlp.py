@@ -61,6 +61,7 @@ class MLP(object):
     def __init__(self, rng, n_in, n_hidden_list, n_out, dropout_rate_list,
             activation_list):
         assert len(n_hidden_list) + 1 == len(dropout_rate_list)
+        self.dropout = max(dropout_rate_list) > 0.0
         assert len(n_hidden_list) == len(activation_list)
         ### Set up Theano variables
         self.bindex = T.lscalar()
@@ -131,8 +132,9 @@ class MLP(object):
                              for param in layer.params]
 
     def neg_log_likelihood(self, y):
+        if not self.dropout:
+            return -T.mean(T.log(self.layers[-1].output)[T.arange(y.shape[0]), y])
         return -T.mean(T.log(self.dropout_layers[-1].output)[T.arange(y.shape[0]), y])
-        #return -T.mean(T.log(self.layers[-1].output)[T.arange(y.shape[0]), y])
 
     def errors(self, y):
         if y.ndim != self.y_pred.ndim:
