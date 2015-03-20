@@ -289,6 +289,7 @@ class MLP(object):
         print(('Optimization complete. Best validation score of %f %% '
                'obtained at iteration %i, with test performance %f %%') %
               (best_validation_loss * 100., best_iter + 1, test_score * 100.))
+        print 'The code ran for %.2fm' % ((end_time - start_time) / 60.)
 
 if __name__ == '__main__':
     import argparse
