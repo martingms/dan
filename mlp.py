@@ -144,6 +144,14 @@ class MLP(object):
             raise NotImplementedError()
         return T.mean(T.neq(self.y_pred, y))
 
+    def output_entropy(self, y):
+        #output = self.layers[-1].output
+        output = theano.printing.Print('output')(self.layers[-1].output)
+        entropy = -T.sum(output * T.log(output), axis=1)
+        entropy_printed = theano.printing.Print('entropy')(entropy)
+        return entropy_printed
+        #return entropy
+
     def L1(self):
         return sum([abs(layer.W).sum() for layer in self.layers])
 
@@ -155,7 +163,13 @@ class MLP(object):
             n_epochs=1000, batch_size=20, perform_early_stopping=False,
             patience=10000, patience_increase=2, improvement_threshold=0.995,
             max_col_norm=15):
-        train_set_x, train_set_y = train_set
+
+        unlabeled_set_x, unlabeled_set_y = train_set
+
+        # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004)
+        train_set_x = theano.shared(unlabeled_set_x.get_value()[:240])
+        train_set_y = theano.shared(unlabeled_set_y.eval()[:240])
+
         valid_set_x, valid_set_y = valid_set
         test_set_x, test_set_y = test_set
 
@@ -198,6 +212,14 @@ class MLP(object):
                 inputs=[],
                 updates={learning_rate: learning_rate * learning_rate_decay}
             )
+
+        entropy_func = theano.function(
+            inputs=[self.bindex],
+            outputs=self.output_entropy(self.x),
+            givens={
+                self.x: unlabeled_set_x[self.bindex * batch_size:(self.bindex + 1) * batch_size],
+            }
+        )
         
         validate_func = theano.function(
             inputs=[self.bindex],
@@ -285,6 +307,7 @@ class MLP(object):
             if learning_rate_decay is not None:
                 learning_rate_update()
 
+        entropy_func(0)
         end_time = time.clock()
         print(('Optimization complete. Best validation score of %f %% '
                'obtained at iteration %i, with test performance %f %%') %
