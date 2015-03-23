@@ -64,7 +64,6 @@ class MLP(object):
         self.dropout = max(dropout_rate_list) > 0.0
         assert len(n_hidden_list) == len(activation_list)
         ### Set up Theano variables
-        self.bindex = T.lscalar()
         self.x = T.matrix('x')
         self.y = T.ivector('y')
 
@@ -211,13 +210,19 @@ class MLP(object):
                 scale = desired_norms / (1e-7 + col_norms)
                 updates[param] = stepped_param * scale
 
+        def calc_range(bindex):
+            return (bindex * batch_size, (bindex +1) * batch_size)
+
+        start = T.lscalar()
+        stop = T.lscalar()
+
         train_func = theano.function(
-            inputs=[self.bindex],
+            inputs=[start, stop],
             outputs=cost,
             updates=updates,
             givens={
-                self.x: train_set_x[self.bindex * batch_size:(self.bindex + 1) * batch_size],
-                self.y: train_set_y[self.bindex * batch_size:(self.bindex + 1) * batch_size]
+                self.x: train_set_x[start:stop],
+                self.y: train_set_y[start:stop]
             }
         )
 
@@ -228,28 +233,41 @@ class MLP(object):
             )
 
         entropy_func = theano.function(
-            inputs=[self.bindex],
+            inputs=[start, stop],
             outputs=self.output_entropy(self.x),
             givens={
-                self.x: unlabeled_set_x[self.bindex * batch_size:(self.bindex + 1) * batch_size],
+                self.x: unlabeled_set_x[start:stop],
             }
         )
+
+        # TODO: labeled_set update func that moves worst unlabeled into training pool.
+
+        def copy_to_train_set(idx):
+            # Warning: Part of a terrible hack to avoid expensive resizing of matrices.
+            # Copy value at idx in unlabeled set to first free spot in training set.
+            theano.set_subtensor(train_set_x[train_set_ptr], unlabeled_set_x.get_value()[idx])
+            theano.set_subtensor(train_set_y[train_set_ptr], unlabeled_set_y.get_value()[idx])
+            train_set_ptr += 1
+            # Delete idx from unlabeled set by swapping in bottom and decreasing pointer.
+            theano.set_subtensor(unlabeled_set_x[idx], unlabeled_set_x.get_value()[unlabeled_set_ptr])
+            theano.set_subtensor(unlabeled_set_y[idx], unlabeled_set_y.get_value()[unlabeled_set_ptr])
+            unlabeled_set_ptr -= 1
         
         validate_func = theano.function(
-            inputs=[self.bindex],
+            inputs=[start, stop],
             outputs=self.errors(self.y),
             givens={
-                self.x: valid_set_x[self.bindex * batch_size:(self.bindex + 1) * batch_size],
-                self.y: valid_set_y[self.bindex * batch_size:(self.bindex + 1) * batch_size]
+                self.x: valid_set_x[start:stop],
+                self.y: valid_set_y[start:stop]
             }
         )
 
         test_func = theano.function(
-            inputs=[self.bindex],
+            inputs=[start, stop],
             outputs=self.errors(self.y),
             givens={
-                self.x: test_set_x[self.bindex * batch_size:(self.bindex + 1) * batch_size],
-                self.y: test_set_y[self.bindex * batch_size:(self.bindex + 1) * batch_size]
+                self.x: test_set_x[start:stop],
+                self.y: test_set_y[start:stop]
             }
         )
 
@@ -267,12 +285,12 @@ class MLP(object):
         while (epoch < n_epochs) and (not done_looping):
             epoch += 1
             for bindex in xrange(n_train_batches):
-                minibatch_avg_cost = train_func(bindex)
+                minibatch_avg_cost = train_func(*calc_range(bindex))
 
                 iter = (epoch - 1) * n_train_batches + bindex
                 if (iter + 1) % validation_frequency == 0:
                     # compute zero-one loss on validation set
-                    validation_losses = [validate_func(i) for i
+                    validation_losses = [validate_func(*calc_range(i)) for i
                                          in xrange(n_valid_batches)]
                     this_validation_loss = np.mean(validation_losses)
 
@@ -302,8 +320,8 @@ class MLP(object):
                         best_iter = iter
 
                         # test it on the test set
-                        test_losses = [test_func(i) for i
-                                       in xrange(n_test_batches)]
+                        test_losses = [test_func(*calc_range(i)) for i in
+                                xrange(n_test_batches)]
                         test_score = np.mean(test_losses)
 
                         print(('     epoch %i, minibatch %i/%i, test error of '
