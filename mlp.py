@@ -5,7 +5,7 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-from mnist import load_data
+from mnist import load_data, shared_dataset
 
 class Layer(object):
     """A generic perceptron layer"""
@@ -164,14 +164,20 @@ class MLP(object):
             patience=10000, patience_increase=2, improvement_threshold=0.995,
             max_col_norm=15):
 
-        unlabeled_set_x, unlabeled_set_y = train_set
+        # Split training set into labeled and unlabeled sets.
+        unlabeled_set_x, unlabeled_set_y = shared_dataset((train_set[0][240:],
+                train_set[1][240:]))
+        # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004).
+        train_set_x, train_set_y = shared_dataset((train_set[0][:240],
+                train_set[1][:240]))
 
-        # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004)
-        train_set_x = theano.shared(unlabeled_set_x.get_value()[:240])
-        train_set_y = theano.shared(unlabeled_set_y.eval()[:240])
+        valid_set_x, valid_set_y = shared_dataset(valid_set)
+        test_set_x, test_set_y = shared_dataset(test_set)
 
-        valid_set_x, valid_set_y = valid_set
-        test_set_x, test_set_y = test_set
+        n_unlabeled_batches = unlabeled_set_x.get_value(borrow=True).shape[0] / batch_size
+        n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
+        n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
+        n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
         learning_rate = theano.shared(
             np.cast[theano.config.floatX](initial_learning_rate)
@@ -240,9 +246,6 @@ class MLP(object):
         )
 
         ### 
-        n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
-        n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
-        n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
     
         validation_frequency = min(n_train_batches, patience / 2)
     
