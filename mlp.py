@@ -165,11 +165,19 @@ class MLP(object):
             max_col_norm=15):
 
         # Split training set into labeled and unlabeled sets.
+        # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004).
+        train_set_x, train_set_y = train_set[0][:240], train_set[1][:240]
+        # Pad with zeros so we don't have to resize when adding new examples to the pool.
+        # How much to pad can be set to the max number of examples we want to add.
+        # Erring on the side of padding too much for now.
+        train_set_x = np.pad(train_set_x, ((0,len(train_set[0])-len(train_set_x)), (0,0)), mode='constant')
+        train_set_y = np.pad(train_set_y, (0,len(train_set[1])-len(train_set_y)), mode='constant')
+        train_set_x, train_set_y = shared_dataset((train_set_x, train_set_y))
+
+        train_set_ptr = 240
         unlabeled_set_x, unlabeled_set_y = shared_dataset((train_set[0][240:],
                 train_set[1][240:]))
-        # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004).
-        train_set_x, train_set_y = shared_dataset((train_set[0][:240],
-                train_set[1][:240]))
+        unlabeled_set_ptr = len(train_set[0])-1
 
         valid_set_x, valid_set_y = shared_dataset(valid_set)
         test_set_x, test_set_y = shared_dataset(test_set)
@@ -307,10 +315,16 @@ class MLP(object):
                     done_looping = True
                     break
 
+                # Active learning
+                entropies = [entropy_func(*calc_range(i)) for i in xrange(n_unlabeled_batches)]
+
+                idx = np.unravel_index(np.argmax(entropies), (n_unlabeled_batches, batch_size))
+                print entropies[idx[0]][idx[1]]
+                assert False
+
             if learning_rate_decay is not None:
                 learning_rate_update()
 
-        entropy_func(0)
         end_time = time.clock()
         print(('Optimization complete. Best validation score of %f %% '
                'obtained at iteration %i, with test performance %f %%') %
