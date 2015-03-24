@@ -331,12 +331,34 @@ class MLP(object):
                     done_looping = True
                     break
 
-                # Active learning
-                entropies = [entropy_func(*calc_range(i)) for i in xrange(n_unlabeled_batches)]
+            ### Active learning
+            # Find example with highest entropy.
+            # TODO/FIXME: Should this be used in a theano.function (w/scan)?
+            # TODO/FIXME: Reuse this buffer!
+            # TODO/FIXME: Verify correctness
+            entropies = np.empty((n_unlabeled_batches, batch_size), dtype=theano.config.floatX)
+            for i in xrange(n_unlabeled_batches):
+                start, stop = calc_range(i)
+                # If range extends further than the pointer, set to pointer.
+                # + 1 because of how ranges work.
+                if stop > set_ptrs['unlabeled'] + 1:
+                    stop = set_ptrs['unlabeled'] + 1
+                ent = entropy_func(start, stop)
+                # The last batch can have an uneven size. In that case, we
+                # pad with zeros, since they don't mess up our results with
+                # np.argmax.
+                if len(ent) != 20:
+                    ent = np.pad(ent, (0, 20-len(ent)), mode='constant')
+                entropies[i] = ent
 
-                idx = np.unravel_index(np.argmax(entropies), (n_unlabeled_batches, batch_size))
-                print entropies[idx[0]][idx[1]]
-                assert False
+            idx = np.argmax(entropies)
+            print "Highest entropy idx:", idx
+
+            # Copy that example to training set and delete from unlabeled set.
+            copy_to_train_set(idx)
+            print set_ptrs
+            n_unlabeled_batches = int(math.ceil(set_ptrs['unlabeled'] / float(batch_size)))
+            n_train_batches = int(math.ceil(set_ptrs['train'] / float(batch_size)))
 
             if learning_rate_decay is not None:
                 learning_rate_update()
