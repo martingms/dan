@@ -311,10 +311,8 @@ class MLP(object):
                     # if we got the best validation score until now
                     if this_validation_loss < best_validation_loss:
                         #improve patience if loss improvement is good enough
-                        if (
-                            this_validation_loss < best_validation_loss *
-                            improvement_threshold
-                        ):
+                        if (this_validation_loss < best_validation_loss *
+                            improvement_threshold):
                             patience = max(patience, iter * patience_increase)
 
                         best_validation_loss = this_validation_loss
@@ -355,11 +353,9 @@ class MLP(object):
                 entropies[i] = ent
 
             idx = np.argmax(entropies)
-            print "Highest entropy idx:", idx
 
             # Copy that example to training set and delete from unlabeled set.
             copy_to_train_set(idx)
-            print set_ptrs
             n_unlabeled_batches = int(math.ceil(set_ptrs['unlabeled'] / float(batch_size)))
             n_train_batches = int(math.ceil(set_ptrs['train'] / float(batch_size)))
 
