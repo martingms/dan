@@ -144,12 +144,8 @@ class MLP(object):
         return T.mean(T.neq(self.y_pred, y))
 
     def output_entropy(self, y):
-        #output = self.layers[-1].output
-        output = theano.printing.Print('output')(self.layers[-1].output)
-        entropy = -T.sum(output * T.log(output), axis=1)
-        entropy_printed = theano.printing.Print('entropy')(entropy)
-        return entropy_printed
-        #return entropy
+        output = self.layers[-1].output
+        return -T.sum(output * T.log(output), axis=1)
 
     def L1(self):
         return sum([abs(layer.W).sum() for layer in self.layers])
