@@ -169,10 +169,10 @@ class MLP(object):
         train_set_y = np.pad(train_set_y, (0,len(train_set[1])-len(train_set_y)), mode='constant')
         train_set_x, train_set_y = shared_dataset((train_set_x, train_set_y))
 
-        train_set_ptr = 240
         unlabeled_set_x, unlabeled_set_y = shared_dataset((train_set[0][240:],
                 train_set[1][240:]))
-        unlabeled_set_ptr = len(train_set[0])-1
+
+        set_ptrs = {'train': 240, 'unlabeled': len(train_set[0][240:])-1}
 
         valid_set_x, valid_set_y = shared_dataset(valid_set)
         test_set_x, test_set_y = shared_dataset(test_set)
@@ -236,18 +236,19 @@ class MLP(object):
             }
         )
 
-        # TODO: labeled_set update func that moves worst unlabeled into training pool.
-
+        # TODO/FIXME: Should probably be called in theano.function?
+        # YES, see http://stackoverflow.com/questions/15917849/how-can-i-assign-update-subset-of-tensor-shared-variable-in-theano
         def copy_to_train_set(idx):
             # Warning: Part of a terrible hack to avoid expensive resizing of matrices.
             # Copy value at idx in unlabeled set to first free spot in training set.
-            theano.set_subtensor(train_set_x[train_set_ptr], unlabeled_set_x.get_value()[idx])
-            theano.set_subtensor(train_set_y[train_set_ptr], unlabeled_set_y.get_value()[idx])
-            train_set_ptr += 1
+            T.set_subtensor(train_set_x[set_ptrs['train']], unlabeled_set_x.get_value()[idx])
+            T.set_subtensor(train_set_y[set_ptrs['train']], unlabeled_set_y.eval()[idx])
+            set_ptrs['train'] += 1
+
             # Delete idx from unlabeled set by swapping in bottom and decreasing pointer.
-            theano.set_subtensor(unlabeled_set_x[idx], unlabeled_set_x.get_value()[unlabeled_set_ptr])
-            theano.set_subtensor(unlabeled_set_y[idx], unlabeled_set_y.get_value()[unlabeled_set_ptr])
-            unlabeled_set_ptr -= 1
+            T.set_subtensor(unlabeled_set_x[idx], unlabeled_set_x.get_value()[set_ptrs['unlabeled']])
+            T.set_subtensor(unlabeled_set_y[idx], unlabeled_set_y.eval()[set_ptrs['unlabeled']])
+            set_ptrs['unlabeled'] -= 1
         
         validate_func = theano.function(
             inputs=[start, stop],
