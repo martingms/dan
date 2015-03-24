@@ -283,7 +283,10 @@ class MLP(object):
         while (epoch < n_epochs) and (not done_looping):
             epoch += 1
             for bindex in xrange(n_train_batches):
-                minibatch_avg_cost = train_func(*calc_range(bindex))
+                start, stop = calc_range(bindex)
+                if stop > set_ptrs['train']:
+                    stop = set_ptrs['train']
+                minibatch_avg_cost = train_func(start, stop)
 
                 iter = (epoch - 1) * n_train_batches + bindex
                 if (iter + 1) % validation_frequency == 0:
