@@ -1,4 +1,5 @@
 import time
+import math
 from collections import OrderedDict
 
 import numpy as np
@@ -178,7 +179,7 @@ class MLP(object):
         test_set_x, test_set_y = shared_dataset(test_set)
 
         n_unlabeled_batches = unlabeled_set_x.get_value(borrow=True).shape[0] / batch_size
-        n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
+        n_train_batches = int(math.ceil(set_ptrs['train'] / float(batch_size)))
         n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
         n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
