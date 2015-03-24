@@ -73,7 +73,8 @@ class MLP(object):
         self.dropout_layers = []
 
         # Main rng used to seed shared rng. This is probably the easiest way to get determinism.
-        srng = T.shared_randomstreams.RandomStreams(rng.randint(2147483647))
+        self.rng = rng
+        srng = T.shared_randomstreams.RandomStreams(self.rng.randint(2147483647))
 
         # Hidden layers
         dropout_input = self.x
@@ -158,7 +159,7 @@ class MLP(object):
             learning_rate_decay=None, L1_reg=0.00, L2_reg=0.0001,
             n_epochs=1000, batch_size=20, perform_early_stopping=False,
             patience=10000, patience_increase=2, improvement_threshold=0.995,
-            max_col_norm=15):
+            max_col_norm=15, random=False):
 
         # Split training set into labeled and unlabeled sets.
         # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004).
@@ -337,22 +338,26 @@ class MLP(object):
             # TODO/FIXME: Should this be used in a theano.function (w/scan)?
             # TODO/FIXME: Reuse this buffer!
             # TODO/FIXME: Verify correctness
-            entropies = np.empty((n_unlabeled_batches, batch_size), dtype=theano.config.floatX)
-            for i in xrange(n_unlabeled_batches):
-                start, stop = calc_range(i)
-                # If range extends further than the pointer, set to pointer.
-                # + 1 because of how ranges work.
-                if stop > set_ptrs['unlabeled'] + 1:
-                    stop = set_ptrs['unlabeled'] + 1
-                ent = entropy_func(start, stop)
-                # The last batch can have an uneven size. In that case, we
-                # pad with zeros, since they don't mess up our results with
-                # np.argmax.
-                if len(ent) != 20:
-                    ent = np.pad(ent, (0, 20-len(ent)), mode='constant')
-                entropies[i] = ent
+            idx = 0
+            if not random:
+                entropies = np.empty((n_unlabeled_batches, batch_size), dtype=theano.config.floatX)
+                for i in xrange(n_unlabeled_batches):
+                    start, stop = calc_range(i)
+                    # If range extends further than the pointer, set to pointer.
+                    # + 1 because of how ranges work.
+                    if stop > set_ptrs['unlabeled'] + 1:
+                        stop = set_ptrs['unlabeled'] + 1
+                    ent = entropy_func(start, stop)
+                    # The last batch can have an uneven size. In that case, we
+                    # pad with zeros, since they don't mess up our results with
+                    # np.argmax.
+                    if len(ent) != 20:
+                        ent = np.pad(ent, (0, 20-len(ent)), mode='constant')
+                    entropies[i] = ent
 
-            idx = np.argmax(entropies)
+                idx = np.argmax(entropies)
+            else:
+                idx = self.rng.randint(set_ptrs['unlabeled'])
 
             # Copy that example to training set and delete from unlabeled set.
             copy_to_train_set(idx)
@@ -382,6 +387,7 @@ if __name__ == '__main__':
     parser.add_argument('-l1', '--l1-reg', type=float, default=0.0)
     parser.add_argument('-l2', '--l2-reg', type=float, default=0.0)
     parser.add_argument('-m', '--max-col-norm', type=float, default=None)
+    parser.add_argument('-r', '--random', type=bool, default=False)
     args = parser.parse_args()
     print args
 
@@ -398,4 +404,4 @@ if __name__ == '__main__':
             L2_reg=args.l2_reg, n_epochs=args.epochs,
             initial_learning_rate=args.learning_rate,
             learning_rate_decay=args.learning_rate_decay,
-            max_col_norm=args.max_col_norm)
+            max_col_norm=args.max_col_norm, random=args.random)
