@@ -382,6 +382,7 @@ if __name__ == '__main__':
     parser.add_argument('-lr', '--learning-rate', type=float, default=0.01)
     parser.add_argument('-lrd', '--learning-rate-decay', type=float, default=None)
     parser.add_argument('-s', '--seed', type=int, default=int(time.time()))
+    parser.add_argument('-e', '--epochs', type=int, default=1000)
     parser.add_argument('-l1', '--l1-reg', type=float, default=0.0)
     parser.add_argument('-l2', '--l2-reg', type=float, default=0.0)
     parser.add_argument('-m', '--max-col-norm', type=float, default=None)
@@ -398,7 +399,7 @@ if __name__ == '__main__':
 
     print "Training."
     mlp.train(datasets[0], datasets[1], datasets[2], L1_reg=args.l1_reg,
-            L2_reg=args.l2_reg, n_epochs=3000,
+            L2_reg=args.l2_reg, n_epochs=args.epochs,
             initial_learning_rate=args.learning_rate,
             learning_rate_decay=args.learning_rate_decay,
             max_col_norm=args.max_col_norm)
