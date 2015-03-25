@@ -1,10 +1,8 @@
-# Taken from deeplearning.net tutorials
 import os
 import gzip
 import cPickle
 import numpy
 
-from utils import shared_dataset
 
 def load_data(dataset):
     # Download the MNIST dataset if it is not present

@@ -2,6 +2,7 @@ import theano
 import numpy as np
 import theano.tensor as T
 
+
 def shared_dataset(data_xy, borrow=True):
     """ Function that loads the dataset into shared variables
 
