@@ -114,9 +114,8 @@ class BackpropTrainer(object):
                   for i in xrange(self.n_test_batches)]
          return np.mean(test_losses)
 
-    def train(self, n_epochs=1000, cur_epoch=0):
-        best_validation_loss = np.inf
-
+    def train(self, n_epochs=1000, cur_epoch=0, best_validation_loss=np.inf,
+                    best_test_score=np.inf):
         done_looping = False
         epoch = 0
         while (epoch < n_epochs and (not done_looping)):
@@ -125,9 +124,11 @@ class BackpropTrainer(object):
             avg_costs = self._epoch()
             validation_loss = self._validate()
 
+            new_best_validation_loss = False
             marker = ""
             if validation_loss < best_validation_loss:
                 best_validation_loss = validation_loss
+                new_best_validation_loss = True
                 marker = "*"
 
             print(
@@ -144,10 +145,12 @@ class BackpropTrainer(object):
             if self.config['learning_rate_decay'] is not None:
                 self.learning_rate_update_func()
 
-        test_score = self._test()
-        print "    epoch %i, test score %f %%" % (cur_epoch, test_score * 100.)
+            if new_best_validation_loss:
+                test_score = self._test()
+                if test_score < best_test_score:
+                    print "    epoch %i, test score %f %%" % (cur_epoch, test_score * 100.)
 
-        return best_validation_loss, test_score
+        return best_validation_loss, best_test_score
 
 class ActiveBackpropTrainer(BackpropTrainer):
     def _init_datasets(self, datasets):
@@ -260,14 +263,17 @@ class ActiveBackpropTrainer(BackpropTrainer):
     def train(self, epochs, epochs_between_copies=1):
         # TODO: Implement copying more than one example.
         best_validation_loss = np.inf
-        test_score = 0.
+        best_test_score = np.inf
         total_epoch = 0
         for i in xrange(epochs/epochs_between_copies):
             validation_loss, test_score = super(ActiveBackpropTrainer,
-                    self).train(epochs_between_copies, total_epoch)
+                    self).train(epochs_between_copies, total_epoch,
+                                    best_validation_loss, best_test_score)
             total_epoch += epochs_between_copies
-            if validation_loss > best_validation_loss:
+            if validation_loss < best_validation_loss:
                 best_validation_loss = validation_loss
+            if test_score < best_test_score:
+                best_test_score = test_score
 
             if not self.config['random_sampling']:
                 # TODO/FIXME: Should probably reuse this buffer.
@@ -300,5 +306,5 @@ class ActiveBackpropTrainer(BackpropTrainer):
                     int(math.ceil(
                         self.train_set_ptr / float(self.config['batch_size'])))
 
-        return best_validation_loss, test_score
+        return best_validation_loss, best_test_score
 
