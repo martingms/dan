@@ -169,15 +169,15 @@ class MLP(object):
         # Erring on the side of padding too much for now.
         train_set_x = np.pad(train_set_x, ((0,len(train_set[0])-len(train_set_x)), (0,0)), mode='constant')
         train_set_y = np.pad(train_set_y, (0,len(train_set[1])-len(train_set_y)), mode='constant')
-        train_set_x, train_set_y = shared_dataset((train_set_x, train_set_y))
+        train_set_x, train_set_y_float, train_set_y = shared_dataset((train_set_x, train_set_y))
 
-        unlabeled_set_x, unlabeled_set_y = shared_dataset((train_set[0][240:],
+        unlabeled_set_x, unlabeled_set_y_float, unlabeled_set_y = shared_dataset((train_set[0][240:],
                 train_set[1][240:]))
 
         set_ptrs = {'train': 240, 'unlabeled': len(train_set[0][240:])-1}
 
-        valid_set_x, valid_set_y = shared_dataset(valid_set)
-        test_set_x, test_set_y = shared_dataset(test_set)
+        valid_set_x, _, valid_set_y = shared_dataset(valid_set)
+        test_set_x, _, test_set_y = shared_dataset(test_set)
 
         n_unlabeled_batches = unlabeled_set_x.get_value(borrow=True).shape[0] / batch_size
         n_train_batches = int(math.ceil(set_ptrs['train'] / float(batch_size)))

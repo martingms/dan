@@ -25,4 +25,4 @@ def shared_dataset(data_xy, borrow=True):
     # floats it doesn't make sense) therefore instead of returning
     # ``shared_y`` we will have to cast it to int. This little hack
     # lets ous get around this issue
-    return shared_x, T.cast(shared_y, 'int32')
+    return shared_x, shared_y, T.cast(shared_y, 'int32')
