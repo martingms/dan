@@ -294,7 +294,7 @@ class ActiveBackpropTrainer(BackpropTrainer):
 
                 idx = np.argmax(entropies)
             else:
-                idx = self.rng.randint(set_ptrs['unlabeled'])
+                idx = self.model.rng.randint(self.unlabeled_set_ptr)
 
             # Copy that example to training set and delete from unlabeled set.
             self._copy_to_train_set(idx)
