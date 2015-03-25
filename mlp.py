@@ -119,8 +119,8 @@ class MLP(object):
             input=input,
             n_in=n_in,
             n_nodes=n_out,
-            W=self.dropout_layers[-1].W,
-            b=self.dropout_layers[-1].b,
+            W=self.dropout_layers[-1].W * (1-dropout_rate_list[-1]),
+            b=self.dropout_layers[-1].b * (1-dropout_rate_list[-1]),
             activation=T.nnet.softmax
         ))
 
