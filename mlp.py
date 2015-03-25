@@ -341,10 +341,10 @@ class MLP(object):
             ### Active learning
             # Find example with highest entropy.
             # TODO/FIXME: Should this be used in a theano.function (w/scan)?
-            # TODO/FIXME: Reuse this buffer!
             # TODO/FIXME: Verify correctness
             idx = 0
             if not random:
+                # TODO/FIXME: Should probably reuse this buffer.
                 entropies = np.empty((n_unlabeled_batches, batch_size), dtype=theano.config.floatX)
                 for i in xrange(n_unlabeled_batches):
                     start, stop = calc_range(i)
