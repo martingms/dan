@@ -1,12 +1,5 @@
 import time
 import argparse
-import numpy as np
-import theano.tensor as T
-
-import mnist
-import mlp
-import trainers
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--input', type=int, default=28*28)
@@ -24,6 +17,14 @@ parser.add_argument('-a', '--active', type=bool, default=True)
 parser.add_argument('-r', '--random-sampling', type=bool, default=False)
 args = parser.parse_args()
 print args
+
+# Importing after arg parsing so that we can run --help without locking a GPU.
+import numpy as np
+import theano.tensor as T
+
+import mnist
+import mlp
+import trainers
 
 print "Loading dataset."
 datasets = mnist.load_data('mnist.pkl.gz')
