@@ -238,18 +238,23 @@ class MLP(object):
             }
         )
 
-        # TODO/FIXME: Should probably be called in theano.function?
-        # YES, see http://stackoverflow.com/questions/15917849/how-can-i-assign-update-subset-of-tensor-shared-variable-in-theano
-        def copy_to_train_set(idx):
-            # Warning: Part of a terrible hack to avoid expensive resizing of matrices.
-            # Copy value at idx in unlabeled set to first free spot in training set.
-            T.set_subtensor(train_set_x[set_ptrs['train']], unlabeled_set_x.get_value()[idx])
-            T.set_subtensor(train_set_y[set_ptrs['train']], unlabeled_set_y.eval()[idx])
-            set_ptrs['train'] += 1
+        # Warning: Part of a terrible hack to avoid expensive resizing of matrices.
+        idx = T.lscalar()
+        copy_to_train_set_func = theano.function(
+            inputs=[idx],
+            updates=[
+                # Copy value at idx in unlabeled set to first free spot in training set.
+                (train_set_x, T.set_subtensor(train_set_x[set_ptrs['train']], unlabeled_set_x[idx])),
+                (train_set_y_float, T.set_subtensor(train_set_y_float[set_ptrs['train']], unlabeled_set_y_float[idx])),
+                # Delete idx from unlabeled set by swapping in bottom and decreasing pointer.
+                (unlabeled_set_x, T.set_subtensor(unlabeled_set_x[idx], unlabeled_set_x[set_ptrs['unlabeled']])),
+                (unlabeled_set_y_float, T.set_subtensor(unlabeled_set_y_float[idx], unlabeled_set_y_float[set_ptrs['unlabeled']]))
+            ]
+        )
 
-            # Delete idx from unlabeled set by swapping in bottom and decreasing pointer.
-            T.set_subtensor(unlabeled_set_x[idx], unlabeled_set_x.get_value()[set_ptrs['unlabeled']])
-            T.set_subtensor(unlabeled_set_y[idx], unlabeled_set_y.eval()[set_ptrs['unlabeled']])
+        def copy_to_train_set(idx):
+            copy_to_train_set_func(idx)
+            set_ptrs['train'] += 1
             set_ptrs['unlabeled'] -= 1
         
         validate_func = theano.function(
