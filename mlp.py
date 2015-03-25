@@ -383,8 +383,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', type=int, default=28*28)
     parser.add_argument('-o', '--output', type=int, default=10)
-    parser.add_argument('-l', '--layers', type=int, nargs='+', default=[800, 800])
-    parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.0, 0.0, 0.0])
+    parser.add_argument('-l', '--layers', type=int, nargs='+', default=[500])
+    parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.0, 0.0])
     parser.add_argument('-lr', '--learning-rate', type=float, default=0.01)
     parser.add_argument('-lrd', '--learning-rate-decay', type=float, default=None)
     parser.add_argument('-s', '--seed', type=int, default=int(time.time()))
@@ -402,7 +402,7 @@ if __name__ == '__main__':
     rng = np.random.RandomState(args.seed)
 
     print "Generating model."
-    mlp = MLP(rng, args.input, args.layers, args.output, args.dropout_p, [T.tanh, T.tanh])
+    mlp = MLP(rng, args.input, args.layers, args.output, args.dropout_p, [T.tanh])
 
     print "Training."
     mlp.train(datasets[0], datasets[1], datasets[2], L1_reg=args.l1_reg,
