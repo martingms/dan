@@ -148,6 +148,7 @@ class BackpropTrainer(object):
             if new_best_validation_loss:
                 test_score = self._test()
                 if test_score < best_test_score:
+                    best_test_score = test_score
                     print "    epoch %i, test score %f %%" % (cur_epoch, test_score * 100.)
 
         return best_validation_loss, best_test_score
