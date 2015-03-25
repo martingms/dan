@@ -227,7 +227,7 @@ class MLP(object):
         if learning_rate_decay is not None:
             learning_rate_update = theano.function(
                 inputs=[],
-                updates={learning_rate: learning_rate * learning_rate_decay}
+                updates=(learning_rate, learning_rate * learning_rate_decay)
             )
 
         entropy_func = theano.function(
