@@ -159,28 +159,35 @@ class MLP(object):
             learning_rate_decay=None, L1_reg=0.00, L2_reg=0.0001,
             n_epochs=1000, batch_size=20, perform_early_stopping=False,
             patience=10000, patience_increase=2, improvement_threshold=0.995,
-            max_col_norm=15, random=False):
+            max_col_norm=15, active=True, random=False):
 
-        # Split training set into labeled and unlabeled sets.
-        # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004).
-        train_set_x, train_set_y = train_set[0][:240], train_set[1][:240]
-        # Pad with zeros so we don't have to resize when adding new examples to the pool.
-        # How much to pad can be set to the max number of examples we want to add.
-        # Erring on the side of padding too much for now.
-        train_set_x = np.pad(train_set_x, ((0,len(train_set[0])-len(train_set_x)), (0,0)), mode='constant')
-        train_set_y = np.pad(train_set_y, (0,len(train_set[1])-len(train_set_y)), mode='constant')
-        train_set_x, train_set_y_float, train_set_y = shared_dataset((train_set_x, train_set_y))
+        if active:
+            # Split training set into labeled and unlabeled sets.
+            # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004).
+            train_set_x, train_set_y = train_set[0][:240], train_set[1][:240]
+            # Pad with zeros so we don't have to resize when adding new examples to the pool.
+            # How much to pad can be set to the max number of examples we want to add.
+            # Erring on the side of padding too much for now.
+            train_set_x = np.pad(train_set_x, ((0,len(train_set[0])-len(train_set_x)), (0,0)), mode='constant')
+            train_set_y = np.pad(train_set_y, (0,len(train_set[1])-len(train_set_y)), mode='constant')
+            train_set_x, train_set_y_float, train_set_y = shared_dataset((train_set_x, train_set_y))
 
-        unlabeled_set_x, unlabeled_set_y_float, unlabeled_set_y = shared_dataset((train_set[0][240:],
-                train_set[1][240:]))
+            unlabeled_set_x, unlabeled_set_y_float, unlabeled_set_y = shared_dataset((train_set[0][240:],
+                    train_set[1][240:]))
 
-        set_ptrs = {'train': 240, 'unlabeled': len(train_set[0][240:])-1}
+            set_ptrs = {'train': 240, 'unlabeled': len(train_set[0][240:])-1}
+        else:
+            train_set_x, _, train_set_y = shared_dataset(train_set)
 
         valid_set_x, _, valid_set_y = shared_dataset(valid_set)
         test_set_x, _, test_set_y = shared_dataset(test_set)
 
-        n_unlabeled_batches = unlabeled_set_x.get_value(borrow=True).shape[0] / batch_size
-        n_train_batches = int(math.ceil(set_ptrs['train'] / float(batch_size)))
+
+        if active:
+            n_unlabeled_batches = unlabeled_set_x.get_value(borrow=True).shape[0] / batch_size
+            n_train_batches = int(math.ceil(set_ptrs['train'] / float(batch_size)))
+        else:
+            n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
         n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
         n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
@@ -230,32 +237,33 @@ class MLP(object):
                 updates=(learning_rate, learning_rate * learning_rate_decay)
             )
 
-        entropy_func = theano.function(
-            inputs=[start, stop],
-            outputs=self.output_entropy(self.x),
-            givens={
-                self.x: unlabeled_set_x[start:stop],
-            }
-        )
+        if active:
+            entropy_func = theano.function(
+                inputs=[start, stop],
+                outputs=self.output_entropy(self.x),
+                givens={
+                    self.x: unlabeled_set_x[start:stop],
+                }
+            )
 
-        # Warning: Part of a terrible hack to avoid expensive resizing of matrices.
-        idx = T.lscalar()
-        copy_to_train_set_func = theano.function(
-            inputs=[idx],
-            updates=[
-                # Copy value at idx in unlabeled set to first free spot in training set.
-                (train_set_x, T.set_subtensor(train_set_x[set_ptrs['train']], unlabeled_set_x[idx])),
-                (train_set_y_float, T.set_subtensor(train_set_y_float[set_ptrs['train']], unlabeled_set_y_float[idx])),
-                # Delete idx from unlabeled set by swapping in bottom and decreasing pointer.
-                (unlabeled_set_x, T.set_subtensor(unlabeled_set_x[idx], unlabeled_set_x[set_ptrs['unlabeled']])),
-                (unlabeled_set_y_float, T.set_subtensor(unlabeled_set_y_float[idx], unlabeled_set_y_float[set_ptrs['unlabeled']]))
-            ]
-        )
+            # Warning: Part of a terrible hack to avoid expensive resizing of matrices.
+            idx = T.lscalar()
+            copy_to_train_set_func = theano.function(
+                inputs=[idx],
+                updates=[
+                    # Copy value at idx in unlabeled set to first free spot in training set.
+                    (train_set_x, T.set_subtensor(train_set_x[set_ptrs['train']], unlabeled_set_x[idx])),
+                    (train_set_y_float, T.set_subtensor(train_set_y_float[set_ptrs['train']], unlabeled_set_y_float[idx])),
+                    # Delete idx from unlabeled set by swapping in bottom and decreasing pointer.
+                    (unlabeled_set_x, T.set_subtensor(unlabeled_set_x[idx], unlabeled_set_x[set_ptrs['unlabeled']])),
+                    (unlabeled_set_y_float, T.set_subtensor(unlabeled_set_y_float[idx], unlabeled_set_y_float[set_ptrs['unlabeled']]))
+                ]
+            )
 
-        def copy_to_train_set(idx):
-            copy_to_train_set_func(idx)
-            set_ptrs['train'] += 1
-            set_ptrs['unlabeled'] -= 1
+            def copy_to_train_set(idx):
+                copy_to_train_set_func(idx)
+                set_ptrs['train'] += 1
+                set_ptrs['unlabeled'] -= 1
         
         validate_func = theano.function(
             inputs=[start, stop],
@@ -290,7 +298,7 @@ class MLP(object):
             epoch += 1
             for bindex in xrange(n_train_batches):
                 start, stop = calc_range(bindex)
-                if stop > set_ptrs['train']:
+                if active and stop > set_ptrs['train']:
                     stop = set_ptrs['train']
                 minibatch_avg_cost = train_func(start, stop)
 
@@ -342,32 +350,33 @@ class MLP(object):
             # Find example with highest entropy.
             # TODO/FIXME: Should this be used in a theano.function (w/scan)?
             # TODO/FIXME: Verify correctness
-            idx = 0
-            if not random:
-                # TODO/FIXME: Should probably reuse this buffer.
-                entropies = np.empty((n_unlabeled_batches, batch_size), dtype=theano.config.floatX)
-                for i in xrange(n_unlabeled_batches):
-                    start, stop = calc_range(i)
-                    # If range extends further than the pointer, set to pointer.
-                    # + 1 because of how ranges work.
-                    if stop > set_ptrs['unlabeled'] + 1:
-                        stop = set_ptrs['unlabeled'] + 1
-                    ent = entropy_func(start, stop)
-                    # The last batch can have an uneven size. In that case, we
-                    # pad with zeros, since they don't mess up our results with
-                    # np.argmax.
-                    if len(ent) != 20:
-                        ent = np.pad(ent, (0, 20-len(ent)), mode='constant')
-                    entropies[i] = ent
+            if active:
+                idx = 0
+                if not random:
+                    # TODO/FIXME: Should probably reuse this buffer.
+                    entropies = np.empty((n_unlabeled_batches, batch_size), dtype=theano.config.floatX)
+                    for i in xrange(n_unlabeled_batches):
+                        start, stop = calc_range(i)
+                        # If range extends further than the pointer, set to pointer.
+                        # + 1 because of how ranges work.
+                        if stop > set_ptrs['unlabeled'] + 1:
+                            stop = set_ptrs['unlabeled'] + 1
+                        ent = entropy_func(start, stop)
+                        # The last batch can have an uneven size. In that case, we
+                        # pad with zeros, since they don't mess up our results with
+                        # np.argmax.
+                        if len(ent) != 20:
+                            ent = np.pad(ent, (0, 20-len(ent)), mode='constant')
+                        entropies[i] = ent
 
-                idx = np.argmax(entropies)
-            else:
-                idx = self.rng.randint(set_ptrs['unlabeled'])
+                    idx = np.argmax(entropies)
+                else:
+                    idx = self.rng.randint(set_ptrs['unlabeled'])
 
-            # Copy that example to training set and delete from unlabeled set.
-            copy_to_train_set(idx)
-            n_unlabeled_batches = int(math.ceil(set_ptrs['unlabeled'] / float(batch_size)))
-            n_train_batches = int(math.ceil(set_ptrs['train'] / float(batch_size)))
+                # Copy that example to training set and delete from unlabeled set.
+                copy_to_train_set(idx)
+                n_unlabeled_batches = int(math.ceil(set_ptrs['unlabeled'] / float(batch_size)))
+                n_train_batches = int(math.ceil(set_ptrs['train'] / float(batch_size)))
 
             if learning_rate_decay is not None:
                 learning_rate_update()
@@ -392,6 +401,7 @@ if __name__ == '__main__':
     parser.add_argument('-l1', '--l1-reg', type=float, default=0.0)
     parser.add_argument('-l2', '--l2-reg', type=float, default=0.0)
     parser.add_argument('-m', '--max-col-norm', type=float, default=None)
+    parser.add_argument('-a', '--active', type=bool, default=True)
     parser.add_argument('-r', '--random', type=bool, default=False)
     args = parser.parse_args()
     print args
@@ -409,4 +419,5 @@ if __name__ == '__main__':
             L2_reg=args.l2_reg, n_epochs=args.epochs,
             initial_learning_rate=args.learning_rate,
             learning_rate_decay=args.learning_rate_decay,
-            max_col_norm=args.max_col_norm, random=args.random)
+            max_col_norm=args.max_col_norm, active=args.active,
+            random=args.random)
