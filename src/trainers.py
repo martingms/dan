@@ -261,20 +261,21 @@ class ActiveBackpropTrainer(BackpropTrainer):
 
         return start, stop
 
-    def train(self, epochs, epochs_between_copies=1):
-        # TODO: Implement copying more than one example.
+    def train(self, epochs):
         best_validation_loss = np.inf
         best_test_score = np.inf
         total_epoch = 0
-        for i in xrange(epochs/epochs_between_copies):
+        for i in xrange(epochs/self.config['epochs_between_copies']):
             validation_loss, test_score = super(ActiveBackpropTrainer,
-                    self).train(epochs_between_copies, total_epoch,
-                                    best_validation_loss, best_test_score)
-            total_epoch += epochs_between_copies
+                    self).train(self.config['epochs_between_copies'],
+                                total_epoch, best_validation_loss,
+                                best_test_score)
             if validation_loss < best_validation_loss:
                 best_validation_loss = validation_loss
             if test_score < best_test_score:
                 best_test_score = test_score
+
+            total_epoch += self.config['epochs_between_copies']
 
             if not self.config['random_sampling']:
                 # TODO/FIXME: Should probably reuse this buffer.
@@ -299,6 +300,7 @@ class ActiveBackpropTrainer(BackpropTrainer):
 
             # Copy that example to training set and delete from unlabeled set.
             self._copy_to_train_set(idx)
+            print "    copied index", idx, "from unlabeled to training set"
             self.n_unlabeled_batches = \
                     int(math.ceil(
                         self.unlabeled_set_ptr \

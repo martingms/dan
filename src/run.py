@@ -15,6 +15,7 @@ parser.add_argument('-l1', '--l1-reg', type=float, default=0.0)
 parser.add_argument('-l2', '--l2-reg', type=float, default=0.0)
 parser.add_argument('-m', '--max-col-norm', type=float, default=None)
 parser.add_argument('-a', '--active', type=bool, default=True)
+parser.add_argument('-ebc', '--epochs-between-copies', type=int, default=1)
 parser.add_argument('-r', '--random-sampling', type=bool, default=False)
 args = parser.parse_args()
 print args
@@ -48,8 +49,10 @@ trainer_config = {
     'max_col_norm': args.max_col_norm,
     'random_sampling': args.random_sampling,
     'l1_reg': args.l1_reg,
-    'l2_reg': args.l2_reg
+    'l2_reg': args.l2_reg,
+    'epochs_between_copies': args.epochs_between_copies
 }
+
 if args.active:
     trainer = trainers.ActiveBackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
 else:
