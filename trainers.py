@@ -291,7 +291,7 @@ class ActiveBackpropTrainer(BackpropTrainer):
                     # np.argmax.
                     if len(ent) != 20:
                         ent = np.pad(ent, (0, 20-len(ent)), mode='constant')
-                    entropies[i] = ent
+                    entropies[bindex] = ent
 
                 idx = np.argmax(entropies)
             else:
