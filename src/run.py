@@ -50,7 +50,9 @@ trainer_config = {
     'random_sampling': args.random_sampling,
     'l1_reg': args.l1_reg,
     'l2_reg': args.l2_reg,
-    'epochs_between_copies': args.epochs_between_copies
+    'epochs_between_copies': args.epochs_between_copies,
+    # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004).
+    'n_boostrap_examples': 240
 }
 
 if args.active:

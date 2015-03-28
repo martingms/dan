@@ -158,7 +158,8 @@ class ActiveBackpropTrainer(BackpropTrainer):
         train_set, valid_set, test_set = datasets
         # Split training set into labeled and unlabeled sets.
         # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004).
-        train_set_x, train_set_y = train_set[0][:240], train_set[1][:240]
+        n_boot = self.config['n_boostrap_examples']
+        train_set_x, train_set_y = train_set[0][:n_boot], train_set[1][:n_boot]
         # Pad with zeros so we don't have to resize when adding new examples to the pool.
         # How much to pad can be set to the max number of examples we want to add.
         # Erring on the side of padding too much for now.
@@ -173,10 +174,10 @@ class ActiveBackpropTrainer(BackpropTrainer):
 
         # TODO/FIXME: Too long line...
         self.unlabeled_set_x, self.unlabeled_set_y_float, self.unlabeled_set_y = \
-                shared_dataset((train_set[0][240:], train_set[1][240:]))
+                shared_dataset((train_set[0][n_boot:], train_set[1][n_boot:]))
 
-        self.train_set_ptr = 240
-        self.unlabeled_set_ptr = len(train_set[0][240:]) - 1
+        self.train_set_ptr = n_boot
+        self.unlabeled_set_ptr = len(train_set[0][n_boot:]) - 1
 
         self.n_train_batches = \
                 int(math.ceil(
