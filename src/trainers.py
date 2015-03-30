@@ -20,12 +20,14 @@ class BackpropTrainer(object):
         self.train_set_x, _, self.train_set_y = shared_dataset(train_set)
         self.valid_set_x, _, self.valid_set_y = shared_dataset(valid_set)
         self.test_set_x, _, self.test_set_y = shared_dataset(test_set)
+
+        batch_size = self.config['batch_size']
         self.n_train_batches = \
-                train_set_x.get_value(borrow=True).shape[0] / batch_size
+                self.train_set_x.get_value(borrow=True).shape[0] / batch_size
         self.n_valid_batches = \
-                valid_set_x.get_value(borrow=True).shape[0] / batch_size
+                self.valid_set_x.get_value(borrow=True).shape[0] / batch_size
         self.n_test_batches = \
-                test_set_x.get_value(borrow=True).shape[0] / batch_size
+                self.test_set_x.get_value(borrow=True).shape[0] / batch_size
 
     def _init_theano_functions(self):
         # Common variables
