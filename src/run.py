@@ -24,6 +24,7 @@ parser.add_argument('--no-active', dest='active', action='store_false')
 parser.set_defaults(active=True)
 parser.add_argument('-ebc', '--epochs-between-copies', type=int, default=1)
 parser.add_argument('-r', '--random-sampling', type=bool, default=False)
+parser.add_argument('-b', '--baseline-n', type=int, default=None)
 args = parser.parse_args()
 print args
 
@@ -37,6 +38,12 @@ import trainers
 
 print "Loading dataset."
 datasets = mnist.load_data('mnist.pkl.gz')
+
+if args.baseline_n is not None:
+    # Baseline the active approach.
+    train_set, valid_set, test_set = datasets
+    train_set = train_set[0][args.baseline_n:], train_set[1][args.baseline_n:]
+    datasets = train_set, valid_set, test_set
 
 start_time = time.clock()
 rng = np.random.RandomState(args.seed)
