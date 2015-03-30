@@ -3,18 +3,25 @@ import time
 import argparse
 
 parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--seed', type=int, default=int(time.time()))
+# General MLP
 parser.add_argument('-i', '--input', type=int, default=28*28)
 parser.add_argument('-o', '--output', type=int, default=10)
 parser.add_argument('-l', '--layers', type=int, nargs='+', default=[500])
+# Dropout
 parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.0, 0.0])
+# Training
 parser.add_argument('-lr', '--learning-rate', type=float, default=0.01)
 parser.add_argument('-lrd', '--learning-rate-decay', type=float, default=None)
-parser.add_argument('-s', '--seed', type=int, default=int(time.time()))
 parser.add_argument('-e', '--epochs', type=int, default=1000)
+# Regularization
 parser.add_argument('-l1', '--l1-reg', type=float, default=0.0)
 parser.add_argument('-l2', '--l2-reg', type=float, default=0.0)
 parser.add_argument('-m', '--max-col-norm', type=float, default=None)
-parser.add_argument('-a', '--active', type=bool, default=True)
+# Active learning
+parser.add_argument('--active', dest='active', action='store_true')
+parser.add_argument('--no-active', dest='active', action='store_false')
+parser.set_defaults(active=True)
 parser.add_argument('-ebc', '--epochs-between-copies', type=int, default=1)
 parser.add_argument('-r', '--random-sampling', type=bool, default=False)
 args = parser.parse_args()
