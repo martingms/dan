@@ -157,7 +157,6 @@ class ActiveBackpropTrainer(BackpropTrainer):
     def _init_datasets(self, datasets):
         train_set, valid_set, test_set = datasets
         # Split training set into labeled and unlabeled sets.
-        # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004).
         n_boot = self.config['n_boostrap_examples']
         train_set_x, train_set_y = train_set[0][:n_boot], train_set[1][:n_boot]
         # Pad with zeros so we don't have to resize when adding new examples to the pool.

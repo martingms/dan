@@ -65,10 +65,12 @@ trainer_config = {
     'l1_reg': args.l1_reg,
     'l2_reg': args.l2_reg,
     'epochs_between_copies': args.epochs_between_copies,
-    # Initialize labeled pool with 240 examples (like Nguyen & Smulders 2004).
+    # Initialize labeled pool in active learning with 240 examples (like Nguyen
+    # & Smulders 2004).
     'n_boostrap_examples': 240
 }
 
+print "Initializing trainer."
 if args.active:
     trainer = trainers.ActiveBackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
 else:
