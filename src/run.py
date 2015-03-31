@@ -42,7 +42,7 @@ datasets = mnist.load_data('mnist.pkl.gz')
 if args.baseline_n is not None:
     # Baseline the active approach.
     train_set, valid_set, test_set = datasets
-    train_set = train_set[0][args.baseline_n:], train_set[1][args.baseline_n:]
+    train_set = train_set[0][:args.baseline_n], train_set[1][:args.baseline_n]
     datasets = train_set, valid_set, test_set
 
 start_time = time.clock()
