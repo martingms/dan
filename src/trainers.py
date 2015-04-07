@@ -201,16 +201,6 @@ class ActiveBackpropTrainer(BackpropTrainer):
         # Init all the common functions and variables.
         super(ActiveBackpropTrainer, self)._init_theano_functions()
 
-        # Init the active learning-specific stuff.
-        # Entropy function
-        self.entropy_func = theano.function(
-            inputs=[self.start, self.stop],
-            outputs=self.model.output_entropy(),
-            givens={
-                self.model.x: self.unlabeled_set_x[self.start:self.stop],
-            }
-        )
-
         # Copy from unlabeled to training set function
         # Warning: Part of a terrible hack to avoid expensive resizing of matrices.
         # TODO/FIXME: Make this a OrderedDict
@@ -264,6 +254,8 @@ class ActiveBackpropTrainer(BackpropTrainer):
         return start, stop
 
     def train(self, epochs):
+        active_selector = self.config['active_selector'](self)
+
         best_validation_loss = np.inf
         best_test_score = np.inf
         total_epoch = 0
@@ -279,26 +271,8 @@ class ActiveBackpropTrainer(BackpropTrainer):
 
             total_epoch += self.config['epochs_between_copies']
 
-            if not self.config['random_sampling']:
-                # TODO/FIXME: Should probably reuse this buffer.
-                entropies = np.empty(
-                        (self.n_unlabeled_batches, self.config['batch_size']),
-                        dtype=theano.config.floatX
-                )
-
-                for bindex in xrange(self.n_unlabeled_batches):
-                    ent = self.entropy_func(
-                            *self._calc_unlabeled_batch_range(bindex))
-                    # The last batch can have an uneven size. In that case, we
-                    # pad with zeros, since they don't mess up our results with
-                    # np.argmax.
-                    if len(ent) != 20:
-                        ent = np.pad(ent, (0, 20-len(ent)), mode='constant')
-                    entropies[bindex] = ent
-
-                idx = np.argmax(entropies)
-            else:
-                idx = self.model.rng.randint(self.unlabeled_set_ptr)
+            # Active selection
+            idx = active_selector.select()
 
             # Copy that example to training set and delete from unlabeled set.
             self._copy_to_train_set(idx)

@@ -35,6 +35,7 @@ import theano.tensor as T
 import mnist
 import mlp
 import trainers
+import activeselectors
 
 print "Loading dataset."
 datasets = mnist.load_data('mnist.pkl.gz')
@@ -61,9 +62,9 @@ trainer_config = {
     'initial_learning_rate': args.learning_rate,
     'learning_rate_decay': args.learning_rate_decay,
     'max_col_norm': args.max_col_norm,
-    'random_sampling': args.random_sampling,
     'l1_reg': args.l1_reg,
     'l2_reg': args.l2_reg,
+    'active_selector': activeselectors.RandomActiveSelector if args.random_sampling else activeselectors.OutputEntropyActiveSelector,
     'epochs_between_copies': args.epochs_between_copies,
     # Initialize labeled pool in active learning with 240 examples (like Nguyen
     # & Smulders 2004).
