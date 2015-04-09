@@ -140,9 +140,11 @@ class MLP(object):
             raise NotImplementedError()
         return T.mean(T.neq(self.y_pred, self.y))
 
-    def output_entropy(self):
-        output = self.layers[-1].output
-        return -T.sum(output * T.log(output), axis=1)
+    def output(self):
+        return self.layers[-1].output
+
+    def dropout_sample_output(self):
+        return self.dropout_layers[-1].output
 
     def L1(self):
         return sum([abs(layer.W).sum() for layer in self.layers])

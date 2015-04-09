@@ -1,5 +1,6 @@
 import numpy as np
 import theano
+import theano.tensor as T
 
 class ActiveSelector(object):
     def __init__(self, trainer):
@@ -14,9 +15,12 @@ class OutputEntropyActiveSelector(ActiveSelector):
     def __init__(self, trainer):
         super(OutputEntropyActiveSelector, self).__init__(trainer)
 
+        output = self.trainer.model.output()
+        entropy = -T.sum(output * T.log(output), axis=1)
+
         self.entropy_func = theano.function(
             inputs=[self.trainer.start, self.trainer.stop],
-            outputs=self.trainer.model.output_entropy(),
+            outputs=entropy,
             givens={
                 self.trainer.model.x: self.trainer.unlabeled_set_x[
                     self.trainer.start:self.trainer.stop
