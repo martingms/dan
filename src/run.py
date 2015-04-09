@@ -64,7 +64,9 @@ trainer_config = {
     'max_col_norm': args.max_col_norm,
     'l1_reg': args.l1_reg,
     'l2_reg': args.l2_reg,
-    'active_selector': activeselectors.RandomActiveSelector if args.random_sampling else activeselectors.OutputEntropyActiveSelector,
+    #'active_selector': activeselectors.RandomActiveSelector if args.random_sampling else activeselectors.OutputEntropyActiveSelector,
+    'active_selector': activeselectors.SoftVEMCDropoutActiveSelector,
+    'n_samples': 5,
     'epochs_between_copies': args.epochs_between_copies,
     # Initialize labeled pool in active learning with 240 examples (like Nguyen
     # & Smulders 2004).
