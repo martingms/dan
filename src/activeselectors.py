@@ -77,15 +77,16 @@ class SoftVEMCDropoutActiveSelector(ActiveSelector):
                 self.trainer.model.x: self.trainer.unlabeled_set_x[
                     self.trainer.start:self.trainer.stop
                 ],
-            }
+            },
+            updates=updates
         )
 
     def select(self):
+        bsize = self.trainer.config['batch_size']
         # TODO/FIXME: This is simply copied from OEAS. Reuse somehow.
         # TODO/FIXME: Should probably reuse this buffer.
         entropies = np.empty(
-            (self.trainer.n_unlabeled_batches,
-                self.trainer.config['batch_size']),
+            (self.trainer.n_unlabeled_batches, bsize),
             dtype=theano.config.floatX
         )
 
@@ -95,8 +96,9 @@ class SoftVEMCDropoutActiveSelector(ActiveSelector):
             # The last batch can have an uneven size. In that case, we
             # pad with zeros, since they don't mess up our results with
             # np.argmax.
-            if len(ent) != 20:
-                ent = np.pad(ent, (0, 20-len(ent)), mode='constant')
+            if len(ent) != bsize:
+                ent = np.pad(ent, (0, bsize-len(ent)), mode='constant')
+
             entropies[bindex] = ent
 
         return np.argmax(entropies)
