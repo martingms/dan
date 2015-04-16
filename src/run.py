@@ -25,6 +25,7 @@ parser.set_defaults(active=True)
 parser.add_argument('-ebc', '--epochs-between-copies', type=int, default=1)
 parser.add_argument('-r', '--random-sampling', type=bool, default=False)
 parser.add_argument('-b', '--baseline-n', type=int, default=None)
+parser.add_argument('-ns', '--n-samples', type=int, default=1)
 args = parser.parse_args()
 print args
 
@@ -66,7 +67,7 @@ trainer_config = {
     'l2_reg': args.l2_reg,
     #'active_selector': activeselectors.RandomActiveSelector if args.random_sampling else activeselectors.OutputEntropyActiveSelector,
     'active_selector': activeselectors.SoftVEMCDropoutActiveSelector,
-    'n_samples': 5,
+    'n_samples': args.n_samples,
     'epochs_between_copies': args.epochs_between_copies,
     # Initialize labeled pool in active learning with 240 examples (like Nguyen
     # & Smulders 2004).
