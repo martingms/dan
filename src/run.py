@@ -9,7 +9,7 @@ parser.add_argument('-i', '--input', type=int, default=28*28)
 parser.add_argument('-o', '--output', type=int, default=10)
 parser.add_argument('-l', '--layers', type=int, nargs='+', default=[500])
 # Dropout
-parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.0, 0.0])
+parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.2, 0.5])
 # Training
 parser.add_argument('-lr', '--learning-rate', type=float, default=0.01)
 parser.add_argument('-lrd', '--learning-rate-decay', type=float, default=None)
