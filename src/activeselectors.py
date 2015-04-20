@@ -53,8 +53,9 @@ class SoftVEMCDropoutActiveSelector(ActiveSelector):
         super(SoftVEMCDropoutActiveSelector, self).__init__(trainer)
         assert self.trainer.model.dropout, \
                 "MC-sampling makes no sense without dropout."
-
         n_samples = self.trainer.config['n_samples']
+        assert n_samples > 1, \
+                "This active selector does not work with less than two samples"
 
         def accumulate(result):
             return result + self.trainer.model.dropout_sample_output()
