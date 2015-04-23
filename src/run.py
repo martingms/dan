@@ -65,8 +65,9 @@ trainer_config = {
     'max_col_norm': args.max_col_norm,
     'l1_reg': args.l1_reg,
     'l2_reg': args.l2_reg,
-    #'active_selector': activeselectors.RandomActiveSelector if args.random_sampling else activeselectors.OutputEntropyActiveSelector,
-    'active_selector': activeselectors.SoftVEMCDropoutActiveSelector,
+    #'active_selector': activeselectors.Random if args.random_sampling else activeselectors.OutputEntropy,
+    #'active_selector': activeselectors.SoftVoteEntropy,
+    'active_selector': activeselectors.KullbackLeiblerDivergence,
     'n_samples': args.n_samples,
     'epochs_between_copies': args.epochs_between_copies,
     # Initialize labeled pool in active learning with 240 examples (like Nguyen
