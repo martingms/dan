@@ -117,14 +117,9 @@ class KullbackLeiblerDivergence(ActiveSelector):
             #sample = theano.printing.Print("sample")(sample)
             return sample
 
-        outputs_info = np.empty(
-                (self.trainer.config['batch_size'],
-                    self.trainer.model.n_out),
-                dtype=theano.config.floatX)
-
         samples, updates = theano.scan(
                 fn=sample,
-                outputs_info=outputs_info,
+                outputs_info=T.zeros_like(self.trainer.model.dropout_sample_output()),
                 n_steps=n_samples
         )
         #samples = theano.printing.Print("samples")(samples)
