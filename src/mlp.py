@@ -71,6 +71,8 @@ class MLP(object):
         self.rng = rng
         srng = T.shared_randomstreams.RandomStreams(self.rng.randint(2147483647))
 
+        self.n_out = n_out
+
         # Hidden layers
         dropout_input = self.x
         input = self.x
