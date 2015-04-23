@@ -6,14 +6,14 @@ class ActiveSelector(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-class RandomActiveSelector(ActiveSelector):
+class Random(ActiveSelector):
     def select(self):
         # TODO/FIXME: Objectception.. Should probably make this nicer somehow.
         return self.trainer.model.rng.randint(self.trainer.unlabeled_set_ptr)
 
-class OutputEntropyActiveSelector(ActiveSelector):
+class OutputEntropy(ActiveSelector):
     def __init__(self, trainer):
-        super(OutputEntropyActiveSelector, self).__init__(trainer)
+        super(OutputEntropy, self).__init__(trainer)
 
         output = self.trainer.model.output()
         entropy = -T.sum(output * T.log(output), axis=1)
@@ -48,9 +48,10 @@ class OutputEntropyActiveSelector(ActiveSelector):
 
         return np.argmax(entropies)
 
-class SoftVEMCDropoutActiveSelector(ActiveSelector):
+class SoftVoteEntropy(ActiveSelector):
+    # TODO/FIXME: Redo like KL
     def __init__(self, trainer):
-        super(SoftVEMCDropoutActiveSelector, self).__init__(trainer)
+        super(SoftVoteEntropy, self).__init__(trainer)
         assert self.trainer.model.dropout, \
                 "MC-sampling makes no sense without dropout."
         n_samples = self.trainer.config['n_samples']
