@@ -173,7 +173,7 @@ class KullbackLeiblerDivergence(ActiveSelector):
             # pad with zeros, since they don't mess up our results with
             # np.argmax.
             if len(kl) != bsize:
-                kl = np.pad(ent, (0, bsize-len(ent)), mode='constant')
+                kl = np.pad(kl, (0, bsize-len(kl)), mode='constant')
 
             divergences[bindex] = kl
 
