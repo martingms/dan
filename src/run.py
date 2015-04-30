@@ -7,11 +7,11 @@ parser.add_argument('-s', '--seed', type=int, default=int(time.time()))
 # General MLP
 parser.add_argument('-i', '--input', type=int, default=28*28)
 parser.add_argument('-o', '--output', type=int, default=10)
-parser.add_argument('-l', '--layers', type=int, nargs='+', default=[500])
+parser.add_argument('-l', '--layers', type=int, nargs='+', default=[1000, 1000, 1000])
 # Dropout
-parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.2, 0.5])
+parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.0, 0.0, 0.0, 0.0])
 # Training
-parser.add_argument('-lr', '--learning-rate', type=float, default=0.01)
+parser.add_argument('-lr', '--learning-rate', type=float, default=0.1)
 parser.add_argument('-lrd', '--learning-rate-decay', type=float, default=None)
 parser.add_argument('-e', '--epochs', type=int, default=1000)
 # Regularization
@@ -21,7 +21,7 @@ parser.add_argument('-m', '--max-col-norm', type=float, default=None)
 # Active learning
 parser.add_argument('--active', dest='active', action='store_true')
 parser.add_argument('--no-active', dest='active', action='store_false')
-parser.set_defaults(active=True)
+parser.set_defaults(active=False)
 parser.add_argument('-ebc', '--epochs-between-copies', type=int, default=1)
 parser.add_argument('-r', '--random-sampling', type=bool, default=False)
 parser.add_argument('-b', '--baseline-n', type=int, default=None)
@@ -73,14 +73,19 @@ trainer_config = {
     'epochs_between_copies': args.epochs_between_copies,
     # Initialize labeled pool in active learning with 240 examples (like Nguyen
     # & Smulders 2004).
-    'n_boostrap_examples': 240
+    'n_boostrap_examples': 240,
+    # DBN
+    'pretrain_lr': 0.01,
+    'k': 1
 }
 
 print "Initializing trainer."
-if args.active:
-    trainer = trainers.ActiveBackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
-else:
-    trainer = trainers.BackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
+#if args.active:
+#    trainer = trainers.ActiveBackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
+#else:
+#    trainer = trainers.BackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
+trainer = trainers.DBNTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
+trainer.pre_train(100)
 
 print "Training."
 best_validation_loss, test_score = trainer.train(args.epochs)
