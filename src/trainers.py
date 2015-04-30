@@ -287,3 +287,60 @@ class ActiveBackpropTrainer(BackpropTrainer):
 
         return best_validation_loss, best_test_score
 
+class DBNTrainer(BackpropTrainer):
+    def __init__(self, model, cost, datasets, config):
+        super(DBNTrainer, self).__init__(model, cost, datasets, config)
+        self._init_pretraining_functions()
+
+    def _init_pretraining_functions(self):
+        '''Generates a list of functions, for performing one step of
+        gradient descent at a given layer. The function will require
+        as input the minibatch index, and to train an RBM you just
+        need to iterate, calling the corresponding function on all
+        minibatch indexes.
+        '''
+
+        # index to a [mini]batch
+        index = T.lscalar('index')  # index to a minibatch
+        learning_rate = T.scalar('lr')  # learning rate to use
+
+        # number of batches
+        #n_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
+        # begining of a batch, given `index`
+        batch_begin = index * self.config['batch_size']
+        # ending of a batch given `index`
+        batch_end = batch_begin + self.config['batch_size']
+
+        self.pretrain_fns = []
+        for rbm in self.model.rbm_layers:
+            # get the cost and the updates list
+            # using CD-k here (persisent=None) for training each RBM.
+            # TODO: change cost function to reconstruction error
+            cost, updates = rbm.get_cost_updates(learning_rate,
+                                                 persistent=None,
+                                                 k=self.config['k'])
+
+            # compile the theano function
+            fn = theano.function(
+                inputs=[index, theano.Param(learning_rate, default=0.1)],
+                outputs=cost,
+                updates=updates,
+                givens={
+                    self.model.x: self.train_set_x[batch_begin:batch_end]
+                }
+            )
+            # append `fn` to the list of functions
+            self.pretrain_fns.append(fn)
+
+    def pre_train(self, epochs):
+        ## Pre-train layer-wise
+        for i in xrange(len(self.pretrain_fns)):
+            # go through pretraining epochs
+            for epoch in xrange(epochs):
+                # go through the training set
+                c = []
+                for batch_index in xrange(self.n_train_batches):
+                    c.append(self.pretrain_fns[i](index=batch_index,
+                                                lr=self.config['pretrain_lr']))
+                print 'Pre-training layer %i, epoch %d, cost ' % (i, epoch),
+                print np.mean(c)

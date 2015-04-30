@@ -2,11 +2,16 @@ import numpy as np
 import theano
 import theano.tensor as T
 
+from rbm import RBM
 
 class Layer(object):
     """A generic perceptron layer"""
     def __init__(self, input, n_in, n_nodes, W=None, b=None,
             activation=lambda x: x):
+        self.input = input
+        self.n_in = n_in
+        self.n_nodes = n_nodes
+
         if W == None:
             W = np.zeros((n_in, n_nodes), dtype=theano.config.floatX)
             W = theano.shared(value=W, name='W', borrow=True)
@@ -69,7 +74,7 @@ class MLP(object):
 
         # Main rng used to seed shared rng. This is probably the easiest way to get determinism.
         self.rng = rng
-        srng = T.shared_randomstreams.RandomStreams(self.rng.randint(2147483647))
+        self.srng = T.shared_randomstreams.RandomStreams(self.rng.randint(2147483647))
 
         self.n_out = n_out
 
@@ -79,7 +84,7 @@ class MLP(object):
         for n_layer, dropout_rate, activation_func in zip(n_hidden_list,
                 dropout_rate_list, activation_list):
             dropout_layer = DropoutLayer(
-                srng=srng,
+                srng=self.srng,
                 input=dropout_input,
                 n_in=n_in,
                 n_nodes=n_layer,
@@ -104,7 +109,7 @@ class MLP(object):
 
         # Softmax output layer
         self.dropout_layers.append(DropoutLayer(
-            srng=srng,
+            srng=self.srng,
             input=dropout_input,
             n_in=n_in,
             n_nodes=n_out,
@@ -153,3 +158,23 @@ class MLP(object):
 
     def L2(self):
         return sum([(layer.W ** 2).sum() for layer in self.layers])
+
+
+class DBN(MLP):
+    def __init__(self, rng, n_in, n_hidden_list, n_out, dropout_rate_list,
+            activation_list):
+        super(DBN, self).__init__(rng, n_in, n_hidden_list, n_out,
+                        dropout_rate_list, activation_list)
+
+        self.rbm_layers = []
+        print self.layers
+        for i in xrange(len(self.layers)-1):
+            layer = self.dropout_layers[i]
+            rbm_layer = RBM(numpy_rng=rng,
+                            theano_rng=self.srng,
+                            input=layer.input,
+                            n_visible=layer.n_in,
+                            n_hidden=layer.n_nodes,
+                            W=layer.W,
+                            hbias=layer.b)
+            self.rbm_layers.append(rbm_layer)

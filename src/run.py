@@ -51,7 +51,8 @@ start_time = time.clock()
 rng = np.random.RandomState(args.seed)
 
 print "Generating model."
-model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p, [T.tanh])
+#model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p, [T.tanh])
+model = mlp.DBN(rng, args.input, args.layers, args.output, args.dropout_p, [T.nnet.sigmoid])
 
 def neg_log_cost_w_l1_l2(y, config):
     return model.neg_log_likelihood(y) \
@@ -59,7 +60,7 @@ def neg_log_cost_w_l1_l2(y, config):
         + config['l2_reg'] * model.L2()
 
 trainer_config = { 
-    'batch_size': 20, 
+    'batch_size': 10, 
     'initial_learning_rate': args.learning_rate,
     'learning_rate_decay': args.learning_rate_decay,
     'max_col_norm': args.max_col_norm,
