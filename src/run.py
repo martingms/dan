@@ -52,7 +52,8 @@ rng = np.random.RandomState(args.seed)
 
 print "Generating model."
 #model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p, [T.tanh])
-model = mlp.DBN(rng, args.input, args.layers, args.output, args.dropout_p, [T.nnet.sigmoid])
+model = mlp.DBN(rng, args.input, args.layers, args.output, args.dropout_p,
+            [T.nnet.sigmoid, T.nnet.sigmoid, T.nnet.sigmoid])
 
 def neg_log_cost_w_l1_l2(y, config):
     return model.neg_log_likelihood(y) \
