@@ -27,12 +27,16 @@ parser.add_argument('-r', '--random-sampling', type=bool, default=False)
 parser.add_argument('-b', '--baseline-n', type=int, default=None)
 parser.add_argument('-n', '--n-select', type=int, default=10)
 parser.add_argument('-ns', '--n-samples', type=int, default=1)
+# Other
+parser.add_argument('-pp', '--pickle-pretraining-file', type=str, default=None)
+parser.add_argument('-lp', '--load-pretraining-file', type=str, default=None)
 args = parser.parse_args()
 print args
 
 # Importing after arg parsing so that we can run --help without locking a GPU.
 import numpy as np
 import theano.tensor as T
+import cPickle
 
 import mnist
 import mlp
@@ -51,10 +55,16 @@ if args.baseline_n is not None:
 start_time = time.clock()
 rng = np.random.RandomState(args.seed)
 
-print "Generating model."
-#model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p, [T.tanh])
-model = mlp.DBN(rng, args.input, args.layers, args.output, args.dropout_p,
-            [T.nnet.sigmoid, T.nnet.sigmoid, T.nnet.sigmoid])
+if not args.load_pretraining_file:
+    print "Generating model."
+    #model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p, [T.tanh])
+    model = mlp.DBN(rng, args.input, args.layers, args.output, args.dropout_p,
+                [T.nnet.sigmoid, T.nnet.sigmoid, T.nnet.sigmoid])
+else:
+    print "Loading model from pickled file."
+    f = file(args.load_pretraining_file, 'rb')
+    model = cPickle.load(f)
+    f.close()
 
 def neg_log_cost_w_l1_l2(y, config):
     return model.neg_log_likelihood(y) \
@@ -83,10 +93,16 @@ trainer_config = {
     'k': 1
 }
 
-print "Initializing pretrainer."
-pretrainer = trainers.DBNTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
-print "Pretraining."
-pretrainer.pre_train(100)
+if not args.load_pretraining_file:
+    print "Initializing pretrainer."
+    pretrainer = trainers.DBNTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
+    print "Pretraining."
+    pretrainer.pre_train(100)
+
+if args.pickle_pretraining_file:
+    f = file(args.pickle_pretraining_file, 'wb')
+    cPickle.dump(model, f, protocol=cPickle.HIGHEST_PROTOCOL)
+    f.close()
 
 if args.active:
     trainer = trainers.ActiveBackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
