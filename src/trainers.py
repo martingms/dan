@@ -3,7 +3,7 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-from collections import OrderedDict
+from collections import OrderedDict, Iterable
 
 from utils import shared_dataset
 
@@ -235,6 +235,15 @@ class ActiveBackpropTrainer(BackpropTrainer):
         """ Wrapper around `copy_to_train_set_func` to also set set-pointers
         correctly. As these are not SharedVariables, they can't be updated
         within a theano.function."""
+        if isinstance(idx, Iterable):
+            # TODO/FIXME: Do all copies in one call to function.
+            for i in idx:
+                self.copy_to_train_set_func(idx)
+                self.train_set_ptr += 1
+                self.unlabeled_set_ptr -= 1
+            return
+
+        # Else..
         self.copy_to_train_set_func(idx)
         self.train_set_ptr += 1
         self.unlabeled_set_ptr -= 1
@@ -272,7 +281,7 @@ class ActiveBackpropTrainer(BackpropTrainer):
             total_epoch += self.config['epochs_between_copies']
 
             # Active selection
-            idx = active_selector.select()
+            idx = active_selector.select(self.config['n_select'])
 
             # Copy that example to training set and delete from unlabeled set.
             self._copy_to_train_set(idx)

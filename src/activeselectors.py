@@ -7,30 +7,21 @@ class ActiveSelector(object):
         self.trainer = trainer
 
 class Random(ActiveSelector):
-    def select(self):
+    def select(self, n):
         # TODO/FIXME: Objectception.. Should probably make this nicer somehow.
-        return self.trainer.model.rng.randint(self.trainer.unlabeled_set_ptr)
+        if n is 1:
+            return self.trainer.model.rng.randint(self.trainer.unlabeled_set_ptr)
+        return self.trainer.model.rng.randint(self.trainer.unlabeled_set_ptr, size=(n,))
 
-class OutputEntropy(ActiveSelector):
+class EntropySelector(ActiveSelector):
+    """This class is not meant to be used directly. Rather, all entropy-based
+    selectors can use this class to get the defined select function which is the
+    same for most"""
     def __init__(self, trainer):
         super(OutputEntropy, self).__init__(trainer)
 
-        output = self.trainer.model.output()
-        entropy = -T.sum(output * T.log(output), axis=1)
-
-        self.entropy_func = theano.function(
-            inputs=[self.trainer.start, self.trainer.stop],
-            outputs=entropy,
-            givens={
-                self.trainer.model.x: self.trainer.unlabeled_set_x[
-                    self.trainer.start:self.trainer.stop
-                ],
-            }
-        )
-
-    def select(self):
+    def select(self, n):
         bsize = self.trainer.config['batch_size']
-        # TODO/FIXME: This is simply copied from OEAS. Reuse somehow.
         # TODO/FIXME: Should probably reuse this buffer.
         entropies = np.empty(
             (self.trainer.n_unlabeled_batches, bsize),
@@ -48,9 +39,29 @@ class OutputEntropy(ActiveSelector):
 
             entropies[bindex] = ent
 
-        return np.argmax(entropies)
+        if n is 1:
+            return np.argmax(entropies)
+        return np.argpartition(entropies, -n)[-n:]
 
-class SoftVoteEntropy(ActiveSelector):
+
+class OutputEntropy(EntropySelector):
+    def __init__(self, trainer):
+        super(OutputEntropy, self).__init__(trainer)
+
+        output = self.trainer.model.output()
+        entropy = -T.sum(output * T.log(output), axis=1)
+
+        self.entropy_func = theano.function(
+            inputs=[self.trainer.start, self.trainer.stop],
+            outputs=entropy,
+            givens={
+                self.trainer.model.x: self.trainer.unlabeled_set_x[
+                    self.trainer.start:self.trainer.stop
+                ],
+            }
+        )
+
+class SoftVoteEntropy(EntropySelector):
     # TODO/FIXME: Redo like KL
     def __init__(self, trainer):
         super(SoftVoteEntropy, self).__init__(trainer)
@@ -84,28 +95,6 @@ class SoftVoteEntropy(ActiveSelector):
             },
             updates=updates
         )
-
-    def select(self):
-        bsize = self.trainer.config['batch_size']
-        # TODO/FIXME: This is simply copied from OEAS. Reuse somehow.
-        # TODO/FIXME: Should probably reuse this buffer.
-        entropies = np.empty(
-            (self.trainer.n_unlabeled_batches, bsize),
-            dtype=theano.config.floatX
-        )
-
-        for bindex in xrange(self.trainer.n_unlabeled_batches):
-            ent = self.entropy_func(
-                    *self.trainer._calc_unlabeled_batch_range(bindex))
-            # The last batch can have an uneven size. In that case, we
-            # pad with zeros, since they don't mess up our results with
-            # np.argmax.
-            if len(ent) != bsize:
-                ent = np.pad(ent, (0, bsize-len(ent)), mode='constant')
-
-            entropies[bindex] = ent
-
-        return np.argmax(entropies)
 
 class KullbackLeiblerDivergence(ActiveSelector):
     def __init__(self, trainer):
@@ -153,9 +142,10 @@ class KullbackLeiblerDivergence(ActiveSelector):
             updates=updates
         )
 
-    def select(self):
+    # TODO/FIXME: This is very similar to the select function in
+    # EntropySelector. Find a way to reuse.
+    def select(self, n):
         bsize = self.trainer.config['batch_size']
-        # TODO/FIXME: This is simply copied from OEAS. Reuse somehow.
         # TODO/FIXME: Should probably reuse this buffer.
         divergences = np.empty(
             (self.trainer.n_unlabeled_batches, bsize),
@@ -174,4 +164,6 @@ class KullbackLeiblerDivergence(ActiveSelector):
 
             divergences[bindex] = kl
 
-        return np.argmax(divergences)
+        if n is 1:
+            return np.argmax(divergences)
+        return np.argpartition(divergences, -n)[-n:]

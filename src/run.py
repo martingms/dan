@@ -25,6 +25,7 @@ parser.set_defaults(active=True)
 parser.add_argument('-ebc', '--epochs-between-copies', type=int, default=10)
 parser.add_argument('-r', '--random-sampling', type=bool, default=False)
 parser.add_argument('-b', '--baseline-n', type=int, default=None)
+parser.add_argument('-n', '--n-select', type=int, default=10)
 parser.add_argument('-ns', '--n-samples', type=int, default=1)
 args = parser.parse_args()
 print args
@@ -72,6 +73,7 @@ trainer_config = {
     #'active_selector': activeselectors.KullbackLeiblerDivergence,
     'active_selector': activeselectors.OutputEntropy,
     'n_samples': args.n_samples,
+    'n_select': args.n_select,
     'epochs_between_copies': args.epochs_between_copies,
     # Initialize labeled pool in active learning with 240 examples (like Nguyen
     # & Smulders 2004).
