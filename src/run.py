@@ -51,6 +51,7 @@ datasets = mnist.load_data('mnist.pkl.gz')
 
 if args.baseline_n is not None:
     # Baseline the active approach.
+    print "Training set limited to first", args.baseline_n, "examples."
     train_set, valid_set, test_set = datasets
     train_set = train_set[0][:args.baseline_n], train_set[1][:args.baseline_n]
     datasets = train_set, valid_set, test_set
@@ -59,12 +60,15 @@ start_time = time.clock()
 rng = np.random.RandomState(args.seed)
 
 if not args.load_pretraining_file:
-    print "Generating model."
+    print "Generating model:",
     if args.dbn:
+        print "DBN."
         model = mlp.DBN(rng, args.input, args.layers, args.output, args.dropout_p,
-                    [T.nnet.sigmoid, T.nnet.sigmoid, T.nnet.sigmoid])
+                    [T.nnet.sigmoid] * len(args.layers))
     else:
-        model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p, [T.tanh])
+        print "MLP."
+        model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p,
+                    [T.tanh] * len(args.layers))
 else:
     print "Loading model from pickled file."
     f = file(args.load_pretraining_file, 'rb')
@@ -105,15 +109,19 @@ if args.dbn and not args.load_pretraining_file:
     pretrainer.pre_train(100)
 
 if args.dbn and args.pickle_pretraining_file:
+    print "Pickling pretrained model."
     f = file(args.pickle_pretraining_file, 'wb')
     cPickle.dump(model, f, protocol=cPickle.HIGHEST_PROTOCOL)
     f.close()
 
 if args.active:
+    print "Using active trainer."
     trainer = trainers.ActiveBackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
 elif args.dbn:
+    print "Using DBN trainer." # Simply inherited from BackpropTrainer
     trainer = pretrainer
 else:
+    print "Using normal backprop trainer."
     trainer = trainers.BackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
 
 print "Training."
