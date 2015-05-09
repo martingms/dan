@@ -167,7 +167,6 @@ class DBN(MLP):
                         dropout_rate_list, activation_list)
 
         self.rbm_layers = []
-        print self.layers
         for i in xrange(len(self.layers)-1):
             layer = self.dropout_layers[i]
             rbm_layer = RBM(numpy_rng=rng,
