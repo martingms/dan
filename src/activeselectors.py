@@ -18,7 +18,7 @@ class EntropySelector(ActiveSelector):
     selectors can use this class to get the defined select function which is the
     same for most"""
     def __init__(self, trainer):
-        super(OutputEntropy, self).__init__(trainer)
+        super(EntropySelector, self).__init__(trainer)
 
     def select(self, n):
         bsize = self.trainer.config['batch_size']
