@@ -28,6 +28,9 @@ parser.add_argument('-b', '--baseline-n', type=int, default=None)
 parser.add_argument('-n', '--n-select', type=int, default=10)
 parser.add_argument('-ns', '--n-samples', type=int, default=1)
 # Other
+parser.add_argument('--dbn', dest='dbn', action='store_true')
+parser.add_argument('--no-dbn', dest='dbn', action='store_false')
+parser.set_defaults(dbn=True)
 parser.add_argument('-pp', '--pickle-pretraining-file', type=str, default=None)
 parser.add_argument('-lp', '--load-pretraining-file', type=str, default=None)
 args = parser.parse_args()
@@ -57,9 +60,11 @@ rng = np.random.RandomState(args.seed)
 
 if not args.load_pretraining_file:
     print "Generating model."
-    #model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p, [T.tanh])
-    model = mlp.DBN(rng, args.input, args.layers, args.output, args.dropout_p,
-                [T.nnet.sigmoid, T.nnet.sigmoid, T.nnet.sigmoid])
+    if args.dbn:
+        model = mlp.DBN(rng, args.input, args.layers, args.output, args.dropout_p,
+                    [T.nnet.sigmoid, T.nnet.sigmoid, T.nnet.sigmoid])
+    else:
+        model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p, [T.tanh])
 else:
     print "Loading model from pickled file."
     f = file(args.load_pretraining_file, 'rb')
@@ -93,21 +98,23 @@ trainer_config = {
     'k': 1
 }
 
-if not args.load_pretraining_file:
+if args.dbn and not args.load_pretraining_file:
     print "Initializing pretrainer."
     pretrainer = trainers.DBNTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
     print "Pretraining."
     pretrainer.pre_train(100)
 
-if args.pickle_pretraining_file:
+if args.dbn and args.pickle_pretraining_file:
     f = file(args.pickle_pretraining_file, 'wb')
     cPickle.dump(model, f, protocol=cPickle.HIGHEST_PROTOCOL)
     f.close()
 
 if args.active:
     trainer = trainers.ActiveBackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
-else:
+elif args.dbn:
     trainer = pretrainer
+else:
+    trainer = trainers.BackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
 
 print "Training."
 best_validation_loss, test_score = trainer.train(args.epochs)
