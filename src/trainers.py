@@ -238,7 +238,7 @@ class ActiveBackpropTrainer(BackpropTrainer):
         if isinstance(idx, Iterable):
             # TODO/FIXME: Do all copies in one call to function.
             for i in idx:
-                self.copy_to_train_set_func(idx)
+                self.copy_to_train_set_func(i)
                 self.train_set_ptr += 1
                 self.unlabeled_set_ptr -= 1
             return

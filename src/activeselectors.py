@@ -41,7 +41,7 @@ class EntropySelector(ActiveSelector):
 
         if n is 1:
             return np.argmax(entropies)
-        return np.argpartition(entropies, -n)[-n:]
+        return np.argpartition(entropies.flatten(), -n)[-n:]
 
 
 class OutputEntropy(EntropySelector):
@@ -166,4 +166,4 @@ class KullbackLeiblerDivergence(ActiveSelector):
 
         if n is 1:
             return np.argmax(divergences)
-        return np.argpartition(divergences, -n)[-n:]
+        return np.argpartition(divergences.flatten(), -n)[-n:]
