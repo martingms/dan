@@ -205,29 +205,31 @@ class ActiveBackpropTrainer(BackpropTrainer):
         # Warning: Part of a terrible hack to avoid expensive resizing of matrices.
         # TODO/FIXME: Make this a OrderedDict
         idx = T.lscalar()
+        train_set_ptr = T.lscalar()
+        unlabeled_set_ptr = T.lscalar()
         copy_updates = [
             # Copy value at idx in unlabeled set to first free spot in training set.
             (self.train_set_x,
                 T.set_subtensor(
-                    self.train_set_x[self.train_set_ptr],
+                    self.train_set_x[train_set_ptr],
                     self.unlabeled_set_x[idx])),
             (self.train_set_y_float,
                 T.set_subtensor(
-                    self.train_set_y_float[self.train_set_ptr],
+                    self.train_set_y_float[train_set_ptr],
                     self.unlabeled_set_y_float[idx])),
             # Delete idx from unlabeled set by swapping in bottom and decreasing pointer.
             (self.unlabeled_set_x,
                 T.set_subtensor(
                     self.unlabeled_set_x[idx],
-                    self.unlabeled_set_x[self.unlabeled_set_ptr])),
+                    self.unlabeled_set_x[unlabeled_set_ptr])),
             (self.unlabeled_set_y_float,
                 T.set_subtensor(
                     self.unlabeled_set_y_float[idx],
-                    self.unlabeled_set_y_float[self.unlabeled_set_ptr]))
+                    self.unlabeled_set_y_float[unlabeled_set_ptr]))
         ]
         # Warning: This is wrapped in `_copy_to_train_set(idx)`.
         self.copy_to_train_set_func = theano.function(
-            inputs=[idx],
+            inputs=[idx, train_set_ptr, unlabeled_set_ptr],
             updates=copy_updates
         )
 
@@ -238,7 +240,8 @@ class ActiveBackpropTrainer(BackpropTrainer):
         if isinstance(idx, Iterable):
             # TODO/FIXME: Do all copies in one call to function.
             for i in idx:
-                self.copy_to_train_set_func(i)
+                self.copy_to_train_set_func(i, self.train_set_ptr,
+                                self.unlabeled_set_ptr)
                 self.train_set_ptr += 1
                 self.unlabeled_set_ptr -= 1
             return
