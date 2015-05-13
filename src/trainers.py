@@ -247,7 +247,8 @@ class ActiveBackpropTrainer(BackpropTrainer):
             return
 
         # Else..
-        self.copy_to_train_set_func(idx)
+        self.copy_to_train_set_func(idx, self.train_set_ptr,
+                        self.unlabeled_set_ptr)
         self.train_set_ptr += 1
         self.unlabeled_set_ptr -= 1
     
