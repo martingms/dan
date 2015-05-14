@@ -37,6 +37,7 @@ args = parser.parse_args()
 print args
 
 # Importing after arg parsing so that we can run --help without locking a GPU.
+import sys
 import numpy as np
 import theano.tensor as T
 import cPickle
@@ -45,6 +46,23 @@ import mnist
 import mlp
 import trainers
 import activeselectors
+
+if args.active:
+    if args.selector == "oe":
+        print "Using output entropy selector."
+        selector = activeselectors.OutputEntropy
+    elif args.selector == "sve":
+        print "Using soft vote entropy selector."
+        selector = activeselectors.SoftVoteEntropy
+    elif args.selector == "kld":
+        print "Using kullback leibler divergence selector."
+        selector = activeselectors.KullbackLeiblerDivergence
+    elif args.selector == "rand":
+        print "Using random selector."
+        selector = activeselectors.Random
+    else:
+        print "No such selector!"
+        sys.exit(1)
 
 print "Loading dataset."
 datasets = mnist.load_data('mnist.pkl.gz')
@@ -74,20 +92,6 @@ else:
     f = file(args.load_pretraining_file, 'rb')
     model = cPickle.load(f)
     f.close()
-
-if active:
-    if args.selector == "oe":
-        print "Using output entropy selector."
-        selector = activeselectors.OutputEntropy
-    elif args.selector = "sve":
-        print "Using soft vote entropy selector."
-        selector = activeselectors.SoftVoteEntropy
-    elif args.selector = "kld":
-        print "Using kullback leibler divergence selector."
-        selector = activeselectors.KullbackLeiblerDivergence
-    else:
-        print "Using random selector."
-        selector = activeselectors.Random
 
 trainer_config = { 
     'batch_size': 10, 
