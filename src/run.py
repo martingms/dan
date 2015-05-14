@@ -22,8 +22,8 @@ parser.add_argument('-m', '--max-col-norm', type=float, default=15)
 parser.add_argument('--active', dest='active', action='store_true')
 parser.add_argument('--no-active', dest='active', action='store_false')
 parser.set_defaults(active=True)
+parser.add_argument('-sl', '--selector', type=str, default="oe")
 parser.add_argument('-ebc', '--epochs-between-copies', type=int, default=10)
-parser.add_argument('-r', '--random-sampling', type=bool, default=False)
 parser.add_argument('-b', '--baseline-n', type=int, default=None)
 parser.add_argument('-n', '--n-select', type=int, default=10)
 parser.add_argument('-ns', '--n-samples', type=int, default=1)
@@ -75,10 +75,19 @@ else:
     model = cPickle.load(f)
     f.close()
 
-def neg_log_cost_w_l1_l2(y, config):
-    return model.neg_log_likelihood(y) \
-        + config['l1_reg'] * model.L1() \
-        + config['l2_reg'] * model.L2()
+if active:
+    if args.selector == "oe":
+        print "Using output entropy selector."
+        selector = activeselectors.OutputEntropy
+    elif args.selector = "sve":
+        print "Using soft vote entropy selector."
+        selector = activeselectors.SoftVoteEntropy
+    elif args.selector = "kld":
+        print "Using kullback leibler divergence selector."
+        selector = activeselectors.KullbackLeiblerDivergence
+    else:
+        print "Using random selector."
+        selector = activeselectors.Random
 
 trainer_config = { 
     'batch_size': 10, 
@@ -87,10 +96,7 @@ trainer_config = {
     'max_col_norm': args.max_col_norm,
     'l1_reg': args.l1_reg,
     'l2_reg': args.l2_reg,
-    #'active_selector': activeselectors.Random if args.random_sampling else activeselectors.OutputEntropy,
-    #'active_selector': activeselectors.SoftVoteEntropy,
-    #'active_selector': activeselectors.KullbackLeiblerDivergence,
-    'active_selector': activeselectors.OutputEntropy,
+    'active_selector': selector,
     'n_samples': args.n_samples,
     'n_select': args.n_select,
     'epochs_between_copies': args.epochs_between_copies,
@@ -101,6 +107,13 @@ trainer_config = {
     'pretrain_lr': 0.01,
     'k': 1
 }
+
+# Cost function used for training.
+# TODO: Move this within the lib?
+def neg_log_cost_w_l1_l2(y, config):
+    return model.neg_log_likelihood(y) \
+        + config['l1_reg'] * model.L1() \
+        + config['l2_reg'] * model.L2()
 
 if args.dbn and not args.load_pretraining_file:
     print "Initializing pretrainer."
