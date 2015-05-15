@@ -136,7 +136,7 @@ if args.dbn and args.pickle_pretraining_file:
 if args.active:
     print "Using active trainer."
     trainer = trainers.ActiveBackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
-elif args.dbn:
+elif args.dbn and not args.load_pretraining_file:
     print "Using DBN trainer." # Simply inherited from BackpropTrainer
     trainer = pretrainer
 else:
