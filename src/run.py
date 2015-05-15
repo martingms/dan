@@ -63,6 +63,8 @@ if args.active:
     else:
         print "No such selector!"
         sys.exit(1)
+else:
+    selector = None
 
 print "Loading dataset."
 datasets = mnist.load_data('mnist.pkl.gz')
