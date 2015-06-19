@@ -123,8 +123,6 @@ class MLP(object):
                              for param in layer.params]
 
     def neg_log_likelihood(self, y):
-        if not self.dropout:
-            return -T.mean(T.log(self.layers[-1].output())[T.arange(y.shape[0]), y])
         return -T.mean(T.log(self.dropout_layers[-1].output())[T.arange(y.shape[0]), y])
 
     def rmse(self, y):
