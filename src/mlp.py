@@ -69,8 +69,7 @@ class MLP(object):
         assert len(n_hidden_list) == len(activation_list)
 
         self.x = T.matrix('x')
-        #self.y = T.ivector('y')
-        self.y = T.matrix('y')
+        self.y = T.ivector('y')
 
         ### Wire up network
         self.layers = []
@@ -191,6 +190,7 @@ class LinearMLP(MLP):
         super(LinearMLP, self).__init__(rng, n_in, n_hidden_list, n_out,
                         dropout_rate_list, activation_list)
 
+        self.y = T.matrix('y')
         self.layers[-1].activation = lambda x: x
         self.dropout_layers[-1].activation = lambda x: x
 
