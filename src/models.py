@@ -64,6 +64,10 @@ class MLP(object):
     """TODO: Write docstring"""
     def __init__(self, rng, n_neuron_list, activation_list,
                     dropout_rate_list = None,
+                    # TODO: Is there some way we can determine this
+                    # automatically? Only used for setting datatype of self.y
+                    # theano variable.
+                    label_datatype = 'int',
                     # Function for processing network output for comparison
                     # with real label. The default is the standard version for
                     # classification.
@@ -79,7 +83,10 @@ class MLP(object):
         assert len(n_neuron_list) == len(dropout_rate_list) + 1
 
         self.x = T.matrix('x')
-        self.y = T.ivector('y')
+        if label_datatype.startswith('int'):
+            self.y = T.ivector('y')
+        elif label_datatype.startswith('float'):
+            self.y = T.matrix('y')
 
         ### Wire up network
         self.layers = []
@@ -180,12 +187,7 @@ class LinearMLP(MLP):
     # common out to a superclass.
     def __init__(self, rng, n_neuron_list, dropout_rate_list, activation_list):
         super(LinearMLP, self).__init__(rng, n_neuron_list, dropout_rate_list,
-                        activation_list, lambda output: output)
-
-        self.y = T.matrix('y')
-
-    def neg_log_likelihood(self, y):
-        raise NotImplementedError('NLL not implemented for regression.')
+                        activation_list, 'float', lambda output: output)
 
     def errors(self):
         # Using RMSE for validation/testing. Could probably use average
