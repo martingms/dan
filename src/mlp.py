@@ -83,8 +83,7 @@ class MLP(object):
 
         # Hidden layers
         dropout_input = self.x
-        #np.set_printoptions(threshold=np.inf)
-        input = self.x #theano.printing.Print("self.x")(self.x)
+        input = self.x
         for n_layer, dropout_rate, activation_func in zip(n_hidden_list,
                 dropout_rate_list, activation_list):
             dropout_layer = DropoutLayer(
@@ -139,6 +138,9 @@ class MLP(object):
         if not self.dropout:
             return -T.mean(T.log(self.layers[-1].output())[T.arange(y.shape[0]), y])
         return -T.mean(T.log(self.dropout_layers[-1].output())[T.arange(y.shape[0]), y])
+
+    def rmse(self, y):
+        return T.sqrt(T.mean(T.sqr((self.y_pred - y))))
 
     def errors(self):
         if self.y.ndim != self.y_pred.ndim:
@@ -209,15 +211,4 @@ class LinearMLP(MLP):
         if not self.y.dtype.startswith('float'):
             raise NotImplementedError()
 
-        #output = theano.printing.Print("errorsoutput")(self.rmse(self.y))
-        #return output
         return self.rmse(self.y)
-
-    def rmse(self, y):
-        #y_pred = theano.printing.Print("y_pred")(self.y_pred)
-        #y = theano.printing.Print("y")(y)
-        #se = theano.printing.Print("se")(T.sqr((y_pred - y)))
-        #mse = theano.printing.Print("mse")(T.mean(se))
-        #rmse = theano.printing.Print("rmse")(T.sqrt(mse))
-        #return rmse
-        return T.sqrt(T.mean(T.sqr((self.y_pred - y))))
