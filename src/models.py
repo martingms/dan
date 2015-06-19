@@ -62,12 +62,16 @@ class DropoutLayer(Layer):
 
 class MLP(object):
     """TODO: Write docstring"""
-    def __init__(self, rng, n_neuron_list, dropout_rate_list,
-            activation_list):
-        assert len(n_neuron_list) == len(dropout_rate_list) + 1
+    def __init__(self, rng, n_neuron_list,
+            activation_list, dropout_rate_list = None):
         assert len(n_neuron_list) == len(activation_list) + 1
 
-        self.dropout = max(dropout_rate_list) > 0.0
+        self.dropout = True
+        if not dropout_rate_list:
+            self.dropout = False
+            dropout_rate_list = [0.0] * len(activation_list)
+
+        assert len(n_neuron_list) == len(dropout_rate_list) + 1
 
         self.x = T.matrix('x')
         self.y = T.ivector('y')
