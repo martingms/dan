@@ -202,7 +202,9 @@ class LinearMLP(MLP):
         raise NotImplementedError('NLL not implemented for regression.')
 
     def errors(self):
-        """RMSE"""
+        # Using RMSE for validation/testing. Could probably use average
+        # absolute error also, depending on use. Should probably be
+        # configurable.
         if self.y.ndim != self.y_pred.ndim:
             raise TypeError(
                 'y should have the same shape as self.y_pred',
