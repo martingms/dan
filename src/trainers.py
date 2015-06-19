@@ -17,12 +17,17 @@ class BackpropTrainer(object):
 
     def _init_datasets(self, datasets):
         train_set, valid_set, test_set = datasets
-        #self.train_set_x, _, self.train_set_y = shared_dataset(train_set)
-        #self.valid_set_x, _, self.valid_set_y = shared_dataset(valid_set)
-        #self.test_set_x, _, self.test_set_y = shared_dataset(test_set)
-        self.train_set_x, self.train_set_y, _ = shared_dataset(train_set)
-        self.valid_set_x, self.valid_set_y, _ = shared_dataset(valid_set)
-        self.test_set_x, self.test_set_y, _ = shared_dataset(test_set)
+        dtype = self.model.y.dtype
+        if dtype.startswith('int'):
+            self.train_set_x, _, self.train_set_y = shared_dataset(train_set)
+            self.valid_set_x, _, self.valid_set_y = shared_dataset(valid_set)
+            self.test_set_x, _, self.test_set_y = shared_dataset(test_set)
+        elif dtype.startswith('float'):
+            self.train_set_x, self.train_set_y, _ = shared_dataset(train_set)
+            self.valid_set_x, self.valid_set_y, _ = shared_dataset(valid_set)
+            self.test_set_x, self.test_set_y, _ = shared_dataset(test_set)
+        else:
+            raise TypeError("output datatype " + dtype + " not supported")
 
         batch_size = self.config['batch_size']
         self.n_train_batches = \
