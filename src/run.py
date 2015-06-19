@@ -50,7 +50,7 @@ import cPickle
 
 import mnist
 import ujindoor
-import mlp
+import models
 import trainers
 import activeselectors
 
@@ -97,18 +97,20 @@ rng = np.random.RandomState(args.seed)
 
 if not args.load_pretraining_file:
     print "Generating model:",
+    layers = [args.input] + args.layers + [args.output]
+
     if args.dbn:
         print "DBN."
-        model = mlp.DBN(rng, args.input, args.layers, args.output, args.dropout_p,
-                    [T.nnet.sigmoid] * len(args.layers))
+        model = models.DBN(rng, layers, args.dropout_p,
+                    [T.nnet.sigmoid] * len(args.layers) + [T.nnet.softmax])
     else:
         print "MLP."
         if args.dataset == 'ujindoor':
-            model = mlp.LinearMLP(rng, args.input, args.layers, args.output, args.dropout_p,
-                        [T.tanh] * len(args.layers))
+            model = models.LinearMLP(rng, layers, args.dropout_p,
+                            [T.tanh] * len(args.layers) + [lambda x: x])
         else:
-            model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p,
-                        [T.tanh] * len(args.layers))
+            activation_list = [T.tanh] * len(args.layers) + [T.nnet.softmax]
+            model = models.MLP(rng, layers, args.dropout_p, activation_list)
 else:
     print "Loading model from pickled file."
     f = file(args.load_pretraining_file, 'rb')

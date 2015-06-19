@@ -62,11 +62,12 @@ class DropoutLayer(Layer):
 
 class MLP(object):
     """TODO: Write docstring"""
-    def __init__(self, rng, n_in, n_hidden_list, n_out, dropout_rate_list,
+    def __init__(self, rng, n_neuron_list, dropout_rate_list,
             activation_list):
-        assert len(n_hidden_list) + 1 == len(dropout_rate_list)
+        assert len(n_neuron_list) == len(dropout_rate_list) + 1
+        assert len(n_neuron_list) == len(activation_list) + 1
+
         self.dropout = max(dropout_rate_list) > 0.0
-        assert len(n_hidden_list) == len(activation_list)
 
         self.x = T.matrix('x')
         self.y = T.ivector('y')
@@ -79,12 +80,13 @@ class MLP(object):
         self.rng = rng
         self.srng = T.shared_randomstreams.RandomStreams(self.rng.randint(2147483647))
 
-        self.n_out = n_out
+        # Not very efficient, but the list is very small anyway.
+        n_in = n_neuron_list.pop(0)
 
         # Hidden layers
         dropout_input = self.x
         input = self.x
-        for n_layer, dropout_rate, activation_func in zip(n_hidden_list,
+        for n_layer, dropout_rate, activation_func in zip(n_neuron_list,
                 dropout_rate_list, activation_list):
             dropout_layer = DropoutLayer(
                 srng=self.srng,
@@ -103,31 +105,13 @@ class MLP(object):
                 n_nodes=n_layer,
                 # Scaling based on dropout.
                 W=dropout_layer.W * (1-dropout_rate),
+                # TODO: Should we scale the bias?
                 b=dropout_layer.b,
                 activation=activation_func
             )
             self.layers.append(layer)
             input = layer.output()
             n_in = n_layer
-
-        # Softmax output layer
-        self.dropout_layers.append(DropoutLayer(
-            srng=self.srng,
-            input=dropout_input,
-            n_in=n_in,
-            n_nodes=n_out,
-            W=Layer.generate_W(rng, n_in, n_out),
-            activation=T.nnet.softmax,
-            dropout_rate=dropout_rate_list[-1]
-        ))
-        self.layers.append(Layer(
-            input=input,
-            n_in=n_in,
-            n_nodes=n_out,
-            W=self.dropout_layers[-1].W * (1-dropout_rate_list[-1]),
-            b=self.dropout_layers[-1].b * (1-dropout_rate_list[-1]),
-            activation=T.nnet.softmax
-        ))
 
         self.y_pred = T.argmax(self.output(), axis=1)
 
@@ -187,14 +171,11 @@ class LinearMLP(MLP):
     # TODO: This should probably be rewritten to be less hacky, but who has the
     # time? Instead of reverting stuff from the base MLP class, move everything
     # common out to a superclass.
-    def __init__(self, rng, n_in, n_hidden_list, n_out, dropout_rate_list,
-            activation_list):
-        super(LinearMLP, self).__init__(rng, n_in, n_hidden_list, n_out,
-                        dropout_rate_list, activation_list)
+    def __init__(self, rng, n_neuron_list, dropout_rate_list, activation_list):
+        super(LinearMLP, self).__init__(rng, n_neuron_list, dropout_rate_list,
+                        activation_list)
 
         self.y = T.matrix('y')
-        self.layers[-1].activation = lambda x: x
-        self.dropout_layers[-1].activation = lambda x: x
 
         self.y_pred = self.output()
 
