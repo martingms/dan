@@ -170,11 +170,3 @@ class DBN(MLP):
                             W=layer.W,
                             hbias=layer.b)
             self.rbm_layers.append(rbm_layer)
-
-class LinearMLP(MLP):
-    # TODO: This should probably be rewritten to be less hacky, but who has the
-    # time? Instead of reverting stuff from the base MLP class, move everything
-    # common out to a superclass.
-    def __init__(self, rng, n_neuron_list, dropout_rate_list, activation_list):
-        super(LinearMLP, self).__init__(rng, n_neuron_list, dropout_rate_list,
-                        activation_list, 'float', lambda output: output)

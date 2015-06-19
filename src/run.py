@@ -107,8 +107,9 @@ if not args.load_pretraining_file:
     else:
         print "MLP."
         if args.dataset == 'ujindoor':
-            model = models.LinearMLP(rng, layers, [T.tanh] * len(args.layers) +
-                            [lambda x: x], args.dropout_p)
+            model = models.MLP(rng, layers, [T.tanh] * len(args.layers) +
+                            [lambda x: x], args.dropout_p, 'float',
+                            lambda output: output)
         else:
             activation_list = [T.tanh] * len(args.layers) + [T.nnet.softmax]
             model = models.MLP(rng, layers, activation_list, args.dropout_p)
