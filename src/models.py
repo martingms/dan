@@ -62,12 +62,17 @@ class DropoutLayer(Layer):
 
 class MLP(object):
     """TODO: Write docstring"""
-    def __init__(self, rng, n_neuron_list,
-            activation_list, dropout_rate_list = None):
+    def __init__(self, rng, n_neuron_list, activation_list,
+                    dropout_rate_list = None,
+                    # Function for processing network output for comparison
+                    # with real label. The default is the standard version for
+                    # classification.
+                    y_pred_func = lambda output: T.argmax(output, axis=1)):
         assert len(n_neuron_list) == len(activation_list) + 1
 
         self.dropout = True
         if not dropout_rate_list:
+            # TODO: When no dropout, don't use the graph through dropout_layers at all.
             self.dropout = False
             dropout_rate_list = [0.0] * len(activation_list)
 
@@ -117,7 +122,7 @@ class MLP(object):
             input = layer.output()
             n_in = n_layer
 
-        self.y_pred = T.argmax(self.output(), axis=1)
+        self.y_pred = y_pred_func(self.output())
 
         self.params = [param for layer in self.dropout_layers
                              for param in layer.params]
@@ -175,11 +180,9 @@ class LinearMLP(MLP):
     # common out to a superclass.
     def __init__(self, rng, n_neuron_list, dropout_rate_list, activation_list):
         super(LinearMLP, self).__init__(rng, n_neuron_list, dropout_rate_list,
-                        activation_list)
+                        activation_list, lambda output: output)
 
         self.y = T.matrix('y')
-
-        self.y_pred = self.output()
 
     def neg_log_likelihood(self, y):
         raise NotImplementedError('NLL not implemented for regression.')
