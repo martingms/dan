@@ -17,9 +17,12 @@ class BackpropTrainer(object):
 
     def _init_datasets(self, datasets):
         train_set, valid_set, test_set = datasets
-        self.train_set_x, _, self.train_set_y = shared_dataset(train_set)
-        self.valid_set_x, _, self.valid_set_y = shared_dataset(valid_set)
-        self.test_set_x, _, self.test_set_y = shared_dataset(test_set)
+        #self.train_set_x, _, self.train_set_y = shared_dataset(train_set)
+        #self.valid_set_x, _, self.valid_set_y = shared_dataset(valid_set)
+        #self.test_set_x, _, self.test_set_y = shared_dataset(test_set)
+        self.train_set_x, self.train_set_y, _ = shared_dataset(train_set)
+        self.valid_set_x, self.valid_set_y, _ = shared_dataset(valid_set)
+        self.test_set_x, self.test_set_y, _ = shared_dataset(test_set)
 
         batch_size = self.config['batch_size']
         self.n_train_batches = \
@@ -44,6 +47,7 @@ class BackpropTrainer(object):
         train_updates = OrderedDict()
         for param, gparam in zip(self.model.params, gparams):
             train_updates[param] = param - self.learning_rate * gparam
+
         # Max-norm regularization
         max_col_norm = self.config['max_col_norm']
         if max_col_norm is not None:
@@ -52,6 +56,7 @@ class BackpropTrainer(object):
                 desired_norms = T.clip(col_norms, 0, T.sqrt(max_col_norm))
                 scale = desired_norms / (1e-7 + col_norms)
                 train_updates[param] = stepped_param * scale
+
 
         self.train_func = theano.function(
             inputs=[self.start, self.stop],
@@ -104,7 +109,6 @@ class BackpropTrainer(object):
         return np.mean(avg_costs)
 
     def _validate(self):
-        # Compute zero-one loss on validation set.
         validation_losses = \
                 [self.validate_func(*self._calc_test_and_valid_batch_range(i))
                  for i in xrange(self.n_valid_batches)]
@@ -134,11 +138,11 @@ class BackpropTrainer(object):
                 marker = "*"
 
             print(
-                'epoch %i, avg training cost %f, validation error %f %%, learning_rate %f %s' %
+                'epoch %i, avg training cost %f, validation error %f, learning_rate %f %s' %
                 (
                     cur_epoch,
                     avg_costs,
-                    validation_loss * 100.,
+                    validation_loss,
                     self.learning_rate.get_value(borrow=True),
                     marker
                 )
@@ -151,7 +155,7 @@ class BackpropTrainer(object):
                 test_score = self._test()
                 if test_score < best_test_score:
                     best_test_score = test_score
-                    print "    epoch %i, test score %f %%" % (cur_epoch, test_score * 100.)
+                    print "    epoch %i, test score %f" % (cur_epoch, test_score)
 
         return best_validation_loss, best_test_score
 

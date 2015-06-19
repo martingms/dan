@@ -22,9 +22,12 @@ class Layer(object):
         self.W = W
         self.b = b
 
-        self.output = activation(T.dot(input, self.W) + self.b)
+        self.activation = activation
 
         self.params = [self.W, self.b]
+
+    def output(self):
+        return self.activation(T.dot(self.input, self.W) + self.b)
 
     @staticmethod
     def generate_W(rng, n_in, n_nodes):
@@ -66,7 +69,8 @@ class MLP(object):
         assert len(n_hidden_list) == len(activation_list)
 
         self.x = T.matrix('x')
-        self.y = T.ivector('y')
+        #self.y = T.ivector('y')
+        self.y = T.matrix('y')
 
         ### Wire up network
         self.layers = []
@@ -80,7 +84,8 @@ class MLP(object):
 
         # Hidden layers
         dropout_input = self.x
-        input = self.x
+        #np.set_printoptions(threshold=np.inf)
+        input = self.x #theano.printing.Print("self.x")(self.x)
         for n_layer, dropout_rate, activation_func in zip(n_hidden_list,
                 dropout_rate_list, activation_list):
             dropout_layer = DropoutLayer(
@@ -92,7 +97,7 @@ class MLP(object):
                 activation=activation_func,
                 dropout_rate=dropout_rate
             )
-            dropout_input = dropout_layer.output
+            dropout_input = dropout_layer.output()
             self.dropout_layers.append(dropout_layer)
             layer = Layer(
                 input=input,
@@ -104,7 +109,7 @@ class MLP(object):
                 activation=activation_func
             )
             self.layers.append(layer)
-            input = layer.output
+            input = layer.output()
             n_in = n_layer
 
         # Softmax output layer
@@ -126,16 +131,15 @@ class MLP(object):
             activation=T.nnet.softmax
         ))
 
-        self.y_pred = T.argmax(self.layers[-1].output, axis=1)
+        self.y_pred = T.argmax(self.output(), axis=1)
 
         self.params = [param for layer in self.dropout_layers
-        #self.params = [param for layer in self.layers
                              for param in layer.params]
 
     def neg_log_likelihood(self, y):
         if not self.dropout:
-            return -T.mean(T.log(self.layers[-1].output)[T.arange(y.shape[0]), y])
-        return -T.mean(T.log(self.dropout_layers[-1].output)[T.arange(y.shape[0]), y])
+            return -T.mean(T.log(self.layers[-1].output())[T.arange(y.shape[0]), y])
+        return -T.mean(T.log(self.dropout_layers[-1].output())[T.arange(y.shape[0]), y])
 
     def errors(self):
         if self.y.ndim != self.y_pred.ndim:
@@ -148,10 +152,10 @@ class MLP(object):
         return T.mean(T.neq(self.y_pred, self.y))
 
     def output(self):
-        return self.layers[-1].output
+        return self.layers[-1].output()
 
     def dropout_sample_output(self):
-        return self.dropout_layers[-1].output
+        return self.dropout_layers[-1].output()
 
     def L1(self):
         return sum([abs(layer.W).sum() for layer in self.layers])
@@ -177,3 +181,43 @@ class DBN(MLP):
                             W=layer.W,
                             hbias=layer.b)
             self.rbm_layers.append(rbm_layer)
+
+class LinearMLP(MLP):
+    # TODO: This should probably be rewritten to be less hacky, but who has the
+    # time? Instead of reverting stuff from the base MLP class, move everything
+    # common out to a superclass.
+    def __init__(self, rng, n_in, n_hidden_list, n_out, dropout_rate_list,
+            activation_list):
+        super(LinearMLP, self).__init__(rng, n_in, n_hidden_list, n_out,
+                        dropout_rate_list, activation_list)
+
+        self.layers[-1].activation = lambda x: x
+        self.dropout_layers[-1].activation = lambda x: x
+
+        self.y_pred = self.output()
+
+    def neg_log_likelihood(self, y):
+        raise NotImplementedError('NLL not implemented for regression.')
+
+    def errors(self):
+        """RMSE"""
+        if self.y.ndim != self.y_pred.ndim:
+            raise TypeError(
+                'y should have the same shape as self.y_pred',
+                ('y', self.y.type, 'y_pred', self.y_pred.type)
+            )
+        if not self.y.dtype.startswith('float'):
+            raise NotImplementedError()
+
+        #output = theano.printing.Print("errorsoutput")(self.rmse(self.y))
+        #return output
+        return self.rmse(self.y)
+
+    def rmse(self, y):
+        #y_pred = theano.printing.Print("y_pred")(self.y_pred)
+        #y = theano.printing.Print("y")(y)
+        #se = theano.printing.Print("se")(T.sqr((y_pred - y)))
+        #mse = theano.printing.Print("mse")(T.mean(se))
+        #rmse = theano.printing.Print("rmse")(T.sqrt(mse))
+        #return rmse
+        return T.sqrt(T.mean(T.sqr((self.y_pred - y))))

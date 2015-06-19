@@ -4,12 +4,18 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--seed', type=int, default=int(time.time()))
+parser.add_argument('-d', '--dataset', type=str, default='mnist')
 # General MLP
-parser.add_argument('-i', '--input', type=int, default=28*28)
-parser.add_argument('-o', '--output', type=int, default=10)
-parser.add_argument('-l', '--layers', type=int, nargs='+', default=[1000, 1000, 1000])
+# TODO derive these from data dimensions.
+#parser.add_argument('-i', '--input', type=int, default=28*28)
+parser.add_argument('-i', '--input', type=int, default=520)
+#parser.add_argument('-o', '--output', type=int, default=10)
+parser.add_argument('-o', '--output', type=int, default=2)
+#parser.add_argument('-l', '--layers', type=int, nargs='+', default=[1000, 1000, 1000])
+parser.add_argument('-l', '--layers', type=int, nargs='+', default=[1000])
 # Dropout
-parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.2, 0.5, 0.5, 0.5])
+#parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.2, 0.5, 0.5, 0.5])
+parser.add_argument('-p', '--dropout-p', type=float, nargs='+', default=[0.2, 0.5])
 # Training
 parser.add_argument('-lr', '--learning-rate', type=float, default=0.01)
 parser.add_argument('-lrd', '--learning-rate-decay', type=float, default=None)
@@ -17,7 +23,7 @@ parser.add_argument('-e', '--epochs', type=int, default=10000)
 # Regularization
 parser.add_argument('-l1', '--l1-reg', type=float, default=0.0)
 parser.add_argument('-l2', '--l2-reg', type=float, default=0.0)
-parser.add_argument('-m', '--max-col-norm', type=float, default=15)
+parser.add_argument('-m', '--max-col-norm', type=float, default=None)
 # Active learning
 parser.add_argument('--active', dest='active', action='store_true')
 parser.add_argument('--no-active', dest='active', action='store_false')
@@ -43,6 +49,7 @@ import theano.tensor as T
 import cPickle
 
 import mnist
+import ujindoor
 import mlp
 import trainers
 import activeselectors
@@ -66,8 +73,17 @@ if args.active:
 else:
     selector = None
 
-print "Loading dataset."
-datasets = mnist.load_data('mnist.pkl.gz')
+print "Loading dataset:", args.dataset
+if args.dataset == 'mnist':
+    datasets = mnist.load_data('mnist.pkl.gz')
+elif args.dataset == 'ujindoor':
+    datasets = ujindoor.load_data(
+        'data/UJIndoorLoc/trainingData.csv',
+        'data/UJIndoorLoc/validationData.csv'
+    )
+else:
+    print "No such dataset:", args.dataset
+    sys.exit(1)
 
 if args.baseline_n is not None:
     # Baseline the active approach.
@@ -87,8 +103,12 @@ if not args.load_pretraining_file:
                     [T.nnet.sigmoid] * len(args.layers))
     else:
         print "MLP."
-        model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p,
-                    [T.tanh] * len(args.layers))
+        if args.dataset == 'ujindoor':
+            model = mlp.LinearMLP(rng, args.input, args.layers, args.output, args.dropout_p,
+                        [T.tanh] * len(args.layers))
+        else:
+            model = mlp.MLP(rng, args.input, args.layers, args.output, args.dropout_p,
+                        [T.tanh] * len(args.layers))
 else:
     print "Loading model from pickled file."
     f = file(args.load_pretraining_file, 'rb')
@@ -114,16 +134,23 @@ trainer_config = {
     'k': 1
 }
 
-# Cost function used for training.
+# Cost functions used for training.
 # TODO: Move this within the lib?
-def neg_log_cost_w_l1_l2(y, config):
-    return model.neg_log_likelihood(y) \
-        + config['l1_reg'] * model.L1() \
-        + config['l2_reg'] * model.L2()
+if args.dataset == 'mnist':
+    def neg_log_cost_w_l1_l2(y, config):
+        return model.neg_log_likelihood(y) \
+            + config['l1_reg'] * model.L1() \
+            + config['l2_reg'] * model.L2()
+    cost_func = neg_log_cost_w_l1_l2
+
+elif args.dataset == 'ujindoor':
+    def rmse(y, config):
+        return model.rmse(y)
+    cost_func = rmse
 
 if args.dbn and not args.load_pretraining_file:
     print "Initializing pretrainer."
-    pretrainer = trainers.DBNTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
+    pretrainer = trainers.DBNTrainer(model, cost_func, datasets, trainer_config)
     print "Pretraining."
     pretrainer.pre_train(100)
 
@@ -135,13 +162,13 @@ if args.dbn and args.pickle_pretraining_file:
 
 if args.active:
     print "Using active trainer."
-    trainer = trainers.ActiveBackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
+    trainer = trainers.ActiveBackpropTrainer(model, cost_func, datasets, trainer_config)
 elif args.dbn and not args.load_pretraining_file:
     print "Using DBN trainer." # Simply inherited from BackpropTrainer
     trainer = pretrainer
 else:
     print "Using normal backprop trainer."
-    trainer = trainers.BackpropTrainer(model, neg_log_cost_w_l1_l2, datasets, trainer_config)
+    trainer = trainers.BackpropTrainer(model, cost_func, datasets, trainer_config)
 
 print "Training."
 best_validation_loss, test_score = trainer.train(args.epochs)
