@@ -8,10 +8,11 @@ from collections import OrderedDict, Iterable
 from utils import shared_dataset
 
 class BackpropTrainer(object):
-    def __init__(self, model, cost, datasets, config):
+    def __init__(self, model, cost_func, error_func, datasets, config):
         self.model = model
         self.config = config
-        self.cost = cost
+        self.cost = cost_func
+        self.errors = error_func
         self._init_datasets(datasets)
         self._init_theano_functions()
 
@@ -84,7 +85,7 @@ class BackpropTrainer(object):
         # Validation function
         self.validate_func = theano.function(
             inputs=[self.start, self.stop],
-            outputs=self.model.errors(),
+            outputs=self.errors(self.model, self.model.y),
             givens={
                 self.model.x: self.valid_set_x[self.start:self.stop],
                 self.model.y: self.valid_set_y[self.start:self.stop]
@@ -94,7 +95,7 @@ class BackpropTrainer(object):
         # Test function
         self.test_func = theano.function(
             inputs=[self.start, self.stop],
-            outputs=self.model.errors(),
+            outputs=self.errors(self.model, self.model.y),
             givens={
                 self.model.x: self.test_set_x[self.start:self.stop],
                 self.model.y: self.test_set_y[self.start:self.stop]
@@ -310,8 +311,8 @@ class ActiveBackpropTrainer(BackpropTrainer):
         return best_validation_loss, best_test_score
 
 class DBNTrainer(BackpropTrainer):
-    def __init__(self, model, cost, datasets, config):
-        super(DBNTrainer, self).__init__(model, cost, datasets, config)
+    def __init__(self, model, cost_func, error_func, datasets, config):
+        super(DBNTrainer, self).__init__(model, cost_func, error_func, datasets, config)
         self._init_pretraining_functions()
 
     def _init_pretraining_functions(self):

@@ -140,16 +140,6 @@ class MLP(object):
     def rmse(self, y):
         return T.sqrt(T.mean(T.sqr((self.y_pred - y))))
 
-    def errors(self):
-        if self.y.ndim != self.y_pred.ndim:
-            raise TypeError(
-                'y should have the same shape as self.y_pred',
-                ('y', self.y.type, 'y_pred', self.y_pred.type)
-            )
-        if not self.y.dtype.startswith('int'):
-            raise NotImplementedError()
-        return T.mean(T.neq(self.y_pred, self.y))
-
     def output(self):
         return self.layers[-1].output()
 
@@ -188,17 +178,3 @@ class LinearMLP(MLP):
     def __init__(self, rng, n_neuron_list, dropout_rate_list, activation_list):
         super(LinearMLP, self).__init__(rng, n_neuron_list, dropout_rate_list,
                         activation_list, 'float', lambda output: output)
-
-    def errors(self):
-        # Using RMSE for validation/testing. Could probably use average
-        # absolute error also, depending on use. Should probably be
-        # configurable.
-        if self.y.ndim != self.y_pred.ndim:
-            raise TypeError(
-                'y should have the same shape as self.y_pred',
-                ('y', self.y.type, 'y_pred', self.y_pred.type)
-            )
-        if not self.y.dtype.startswith('float'):
-            raise NotImplementedError()
-
-        return self.rmse(self.y)

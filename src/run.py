@@ -53,6 +53,7 @@ import ujindoor
 import models
 import trainers
 import activeselectors
+import errorfuncs
 
 if args.active:
     if args.selector == "oe":
@@ -144,15 +145,17 @@ if args.dataset == 'mnist':
             + config['l1_reg'] * model.L1() \
             + config['l2_reg'] * model.L2()
     cost_func = neg_log_cost_w_l1_l2
+    error_func = errorfuncs.meanerrors
 
 elif args.dataset == 'ujindoor':
     def rmse(y, config):
         return model.rmse(y)
     cost_func = rmse
+    error_func = errorfuncs.rmse
 
 if args.dbn and not args.load_pretraining_file:
     print "Initializing pretrainer."
-    pretrainer = trainers.DBNTrainer(model, cost_func, datasets, trainer_config)
+    pretrainer = trainers.DBNTrainer(model, cost_func, error_func, datasets, trainer_config)
     print "Pretraining."
     pretrainer.pre_train(100)
 
@@ -164,13 +167,13 @@ if args.dbn and args.pickle_pretraining_file:
 
 if args.active:
     print "Using active trainer."
-    trainer = trainers.ActiveBackpropTrainer(model, cost_func, datasets, trainer_config)
+    trainer = trainers.ActiveBackpropTrainer(model, cost_func, error_func, datasets, trainer_config)
 elif args.dbn and not args.load_pretraining_file:
     print "Using DBN trainer." # Simply inherited from BackpropTrainer
     trainer = pretrainer
 else:
     print "Using normal backprop trainer."
-    trainer = trainers.BackpropTrainer(model, cost_func, datasets, trainer_config)
+    trainer = trainers.BackpropTrainer(model, cost_func, error_func, datasets, trainer_config)
 
 print "Training."
 best_validation_loss, test_score = trainer.train(args.epochs)
