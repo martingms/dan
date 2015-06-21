@@ -187,8 +187,8 @@ else:
 
 print "Training."
 best_validation_loss, test_score = trainer.train(args.epochs)
-print(('Optimization complete. Best validation score: %f %%. '
-       'Test performace %f %%.') %
-      (best_validation_loss * 100., test_score * 100.))
+print(('Optimization complete. Best validation score: %f . '
+       'Test performace %f .') %
+      (best_validation_loss, test_score))
 end_time = time.clock()
 print 'The code ran for %.2fm' % ((end_time - start_time) / 60.)
