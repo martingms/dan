@@ -154,10 +154,10 @@ class MLP(object):
 
 
 class DBN(MLP):
-    def __init__(self, rng, n_in, n_hidden_list, n_out, dropout_rate_list,
-            activation_list):
-        super(DBN, self).__init__(rng, n_in, n_hidden_list, n_out,
-                        dropout_rate_list, activation_list)
+    def __init__(self, rng, n_neuron_list, activation_list, dropout_rate_list,
+                    label_datatype, y_pred_func):
+        super(DBN, self).__init__(rng, n_neuron_list, activation_list,
+                        dropout_rate_list, label_datatype, y_pred_func)
 
         self.rbm_layers = []
         for i in xrange(len(self.layers)-1):
