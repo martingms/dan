@@ -177,18 +177,40 @@ class ActiveBackpropTrainer(BackpropTrainer):
         train_set_x = np.pad(train_set_x,
                 ((0,len(train_set[0])-len(train_set_x)), (0,0)),
                 mode='constant')
-        train_set_y = np.pad(train_set_y,
-                (0,len(train_set[1])-len(train_set_y)),
-                mode='constant')
-        self.train_set_x, self.train_set_y_float, self.train_set_y = \
-                shared_dataset((train_set_x, train_set_y))
 
-        # TODO/FIXME: Too long line...
-        self.unlabeled_set_x, self.unlabeled_set_y_float, self.unlabeled_set_y = \
-                shared_dataset((train_set[0][n_boot:], train_set[1][n_boot:]))
+        if len(train_set_y.shape) > 1:
+            padding = ((0,len(train_set[1])-len(train_set_y)), (0,0))
+        elif len(train_set_y.shape) == 0:
+            padding = (0,len(train_set[1])-len(train_set_y))
+        else:
+            raise TypeError("train_set_y has illegal shape, should have 1 or 2 dimensions")
+
+        train_set_y = np.pad(train_set_y, padding, mode='constant')
 
         self.train_set_ptr = n_boot
         self.unlabeled_set_ptr = len(train_set[0][n_boot:]) - 1
+
+        dtype = self.model.y.dtype
+        if dtype.startswith('int'):
+            self.train_set_x, self.train_set_y_float, self.train_set_y = \
+                    shared_dataset((train_set_x, train_set_y))
+            self.unlabeled_set_x, self.unlabeled_set_y_float, self.unlabeled_set_y = \
+                    shared_dataset((train_set[0][n_boot:], train_set[1][n_boot:]))
+            self.valid_set_x, _, self.valid_set_y = shared_dataset(valid_set)
+            self.test_set_x, _, self.test_set_y = shared_dataset(test_set)
+        elif dtype.startswith('float'):
+            self.train_set_x, self.train_set_y_float, _ = \
+                    shared_dataset((train_set_x, train_set_y))
+            self.train_set_y = self.train_set_y_float
+
+            self.unlabeled_set_x, self.unlabeled_set_y_float, _ = \
+                    shared_dataset((train_set[0][n_boot:], train_set[1][n_boot:]))
+            self.unlabeled_set_y = self.unlabeled_set_y_float
+
+            self.valid_set_x, self.valid_set_y, _ = shared_dataset(valid_set)
+            self.test_set_x, self.test_set_y, _ = shared_dataset(test_set)
+        else:
+            raise TypeError("output datatype " + dtype + " not supported")
 
         self.n_train_batches = \
                 int(math.ceil(
@@ -196,10 +218,6 @@ class ActiveBackpropTrainer(BackpropTrainer):
         self.n_unlabeled_batches = \
                 self.unlabeled_set_x.get_value(borrow=True).shape[0] \
                     / self.config['batch_size']
-
-        # Validation and test sets are set just like in BackpropTrainer.
-        self.valid_set_x, _, self.valid_set_y = shared_dataset(valid_set)
-        self.test_set_x, _, self.test_set_y = shared_dataset(test_set)
         self.n_valid_batches = \
                 self.valid_set_x.get_value(borrow=True).shape[0] \
                     / self.config['batch_size']
