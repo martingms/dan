@@ -79,8 +79,8 @@ if args.dataset == 'mnist':
     datasets = mnist.load_data('mnist.pkl.gz')
 elif args.dataset == 'ujindoor':
     datasets = ujindoor.load_data(
-        'data/UJIndoorLoc/trainingData.csv',
-        'data/UJIndoorLoc/validationData.csv'
+        'data/UJIndoorLoc/trainingData_shuffled.csv',
+        'data/UJIndoorLoc/validationData_shuffled.csv'
     )
 else:
     print "No such dataset:", args.dataset
