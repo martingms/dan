@@ -134,6 +134,7 @@ class MLP(object):
         self.params = [param for layer in self.dropout_layers
                              for param in layer.params]
 
+    # TODO: Does it make more sense to have these two functions elsewhere?
     def neg_log_likelihood(self, y):
         return -T.mean(T.log(self.dropout_layers[-1].output())[T.arange(y.shape[0]), y])
 

@@ -213,10 +213,10 @@ class ActiveBackpropTrainer(BackpropTrainer):
 
         # Copy from unlabeled to training set function
         # Warning: Part of a terrible hack to avoid expensive resizing of matrices.
-        # TODO/FIXME: Make this a OrderedDict
         idx = T.lscalar()
         train_set_ptr = T.lscalar()
         unlabeled_set_ptr = T.lscalar()
+        # TODO/FIXME: Make this a OrderedDict
         copy_updates = [
             # Copy value at idx in unlabeled set to first free spot in training set.
             (self.train_set_x,
