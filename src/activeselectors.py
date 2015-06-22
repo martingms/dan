@@ -105,7 +105,6 @@ class KullbackLeiblerDivergence(ActiveSelector):
 
         def sample(result):
             sample = self.trainer.model.dropout_sample_output()
-            #sample = theano.printing.Print("sample")(sample)
             return sample
 
         samples, updates = theano.scan(
@@ -113,23 +112,17 @@ class KullbackLeiblerDivergence(ActiveSelector):
                 outputs_info=T.zeros_like(self.trainer.model.dropout_sample_output()),
                 n_steps=n_samples
         )
-        #samples = theano.printing.Print("samples")(samples)
 
         # Average P(y|x) over all committee samples.
         sample_sum = T.sum(samples, axis=0)
-        #sample_sum = theano.printing.Print("sample_sum")(sample_sum)
         c_avg = sample_sum / n_samples
-        #c_avg = theano.printing.Print("c_avg")(c_avg)
 
         # Kullback-Leibler divergence between p_theta and p_c
         # Sum over all possible outputs
         kl = T.sum(samples * T.log(samples/c_avg), axis=2)
-        #kl = theano.printing.Print("kl")(kl)
 
         # Sum over all samples in the committee
-        # TODO: Can be done in one op
         kl_sum = T.sum(kl, axis=0) / n_samples
-        #kl_sum = theano.printing.Print("kl_sum")(kl_sum)
 
         self.kl_func = theano.function(
             inputs=[self.trainer.start, self.trainer.stop],
