@@ -110,9 +110,9 @@ class BackpropTrainer(object):
                 (bindex + 1) * self.config['batch_size'])
 
     def _epoch(self):
-        avg_costs = [self.train_func(*self._calc_train_batch_range(i))
+        costs = [self.train_func(*self._calc_train_batch_range(i))
                      for i in xrange(self.n_train_batches)]
-        return np.mean(avg_costs)
+        return np.mean(costs)
 
     def _validate(self):
         validation_losses = \
