@@ -108,7 +108,7 @@ if not args.load_pretraining_file:
     if args.dataset == 'ujindoor':
         activation_list = activation_list + [lambda x: x]
     elif args.dataset == 'mnist':
-        activation_list = actication_list + [T.nnet.softmax]
+        activation_list = activation_list + [T.nnet.softmax]
 
 
     if args.dbn:

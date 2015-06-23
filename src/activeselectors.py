@@ -104,8 +104,7 @@ class KullbackLeiblerDivergence(ScoreSelector):
         n_samples = self.trainer.config['n_samples']
 
         def sample(result):
-            sample = self.trainer.model.dropout_sample_output()
-            return sample
+            return self.trainer.model.dropout_sample_output()
 
         samples, updates = theano.scan(
                 fn=sample,
@@ -121,6 +120,7 @@ class KullbackLeiblerDivergence(ScoreSelector):
         # Sum over all possible outputs
         kl = T.sum(samples * T.log(samples/c_avg), axis=2)
 
+        # TODO: T.mean...
         # Sum over all samples in the committee
         kl_sum = T.sum(kl, axis=0) / n_samples
 
