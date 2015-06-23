@@ -178,9 +178,9 @@ class ActiveBackpropTrainer(BackpropTrainer):
                 ((0,len(train_set[0])-len(train_set_x)), (0,0)),
                 mode='constant')
 
-        if len(train_set_y.shape) > 1:
+        if len(train_set_y.shape) == 2:
             padding = ((0,len(train_set[1])-len(train_set_y)), (0,0))
-        elif len(train_set_y.shape) == 0:
+        elif len(train_set_y.shape) == 1:
             padding = (0,len(train_set[1])-len(train_set_y))
         else:
             raise TypeError("train_set_y has illegal shape, should have 1 or 2 dimensions")
