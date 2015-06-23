@@ -68,6 +68,9 @@ if args.active:
     elif args.selector == "rand":
         print "Using random selector."
         selector = activeselectors.Random
+    elif args.selector == "svar":
+        print "Using samle variance selector."
+        selector = activeselectors.SampleVariance
     else:
         print "No such selector!"
         sys.exit(1)

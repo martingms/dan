@@ -134,3 +134,35 @@ class KullbackLeiblerDivergence(ScoreSelector):
             },
             updates=updates
         )
+
+
+class SampleVariance(ScoreSelector):
+    def __init__(self, trainer):
+        super(SampleVariance, self).__init__(trainer)
+        assert self.trainer.model.dropout, \
+                "MC-sampling makes no sense without dropout."
+        n_samples = self.trainer.config['n_samples']
+
+        def sample(result):
+            return self.trainer.model.dropout_sample_output()
+
+        samples, updates = theano.scan(
+                fn=sample,
+                outputs_info=T.zeros_like(self.trainer.model.dropout_sample_output()),
+                n_steps=n_samples
+        )
+
+        variances = T.var(samples, axis=0)
+
+        mean_variance = T.mean(variances, axis=1)
+
+        self.score_func = theano.function(
+            inputs=[self.trainer.start, self.trainer.stop],
+            outputs=mean_variance,
+            givens={
+                self.trainer.model.x: self.trainer.unlabeled_set_x[
+                    self.trainer.start:self.trainer.stop
+                ],
+            },
+            updates=updates
+        )
