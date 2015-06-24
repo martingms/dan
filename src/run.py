@@ -110,21 +110,21 @@ if not args.load_pretraining_file:
 
     if args.dataset == 'ujindoor':
         activation_list = activation_list + [lambda x: x]
+        datatype = 'float'
+        output_func = lambda output: output
     elif args.dataset == 'mnist':
         activation_list = activation_list + [T.nnet.softmax]
-
+        datatype = 'int'
+        output_func = lambda output: T.argmax(output, axis=1)
 
     if args.dbn:
         print "DBN."
         model = models.DBN(rng, layers, activation_list, args.dropout_p,
-                        'float', lambda output: output)
+                        datatype, output_func)
     else:
         print "MLP."
-        if args.dataset == 'ujindoor':
-            model = models.MLP(rng, layers, activation_list, args.dropout_p,
-                            'float', lambda output: output)
-        else:
-            model = models.MLP(rng, layers, activation_list, args.dropout_p)
+        model = models.MLP(rng, layers, activation_list, args.dropout_p,
+                        datatype, output_func)
 else:
     print "Loading model from pickled file."
     f = file(args.load_pretraining_file, 'rb')
