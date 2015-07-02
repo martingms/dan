@@ -169,6 +169,8 @@ class KullbackLeiblerDivergence(ScoreSelector):
         assert self.trainer.model.dropout, \
                 "MC-sampling makes no sense without dropout."
         n_samples = self.trainer.config['n_samples']
+        assert n_samples > 1, \
+                "This active selector does not work with less than two samples"
 
         def sample(result):
             return self.trainer.model.dropout_sample_output()
@@ -209,6 +211,8 @@ class SampleVariance(ScoreSelector):
         assert self.trainer.model.dropout, \
                 "MC-sampling makes no sense without dropout."
         n_samples = self.trainer.config['n_samples']
+        assert n_samples > 1, \
+                "This active selector does not work with less than two samples"
 
         def sample(result):
             return self.trainer.model.dropout_sample_output()
