@@ -20,6 +20,36 @@ class ScoreSelector(ActiveSelector):
     def __init__(self, trainer):
         super(ScoreSelector, self).__init__(trainer)
 
+        # For debugging, making it possible to plot error against
+        # scores to see how different selectors behave.
+        start = T.lscalar()
+        stop = T.lscalar()
+        target = T.matrix("target")
+
+        output = self.trainer.model.output()
+        #output = theano.printing.Print("output")(output)
+
+        err = output - target
+        #err = theano.printing.Print("err")(err)
+
+        distance = T.sqrt(T.sum(T.sqr(err), axis=1))
+        #distance = theano.printing.Print("distance")(distance)
+
+        self.err_distance_func = theano.function(
+            inputs=[start, stop],
+            outputs=distance,
+            givens={
+                self.trainer.model.x: self.trainer.unlabeled_set_x[start:stop],
+                target: self.trainer.unlabeled_set_y[start:stop]
+            }
+        )
+
+        # TODO: Delete
+        self.counter = 0
+
+    def err_distance(self, start, stop):
+        return self.err_distance_func(start, stop)
+
     def select(self, n):
         bsize = self.trainer.config['batch_size']
         # TODO/FIXME: Should probably reuse this buffer.
