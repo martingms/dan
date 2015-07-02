@@ -71,6 +71,9 @@ if args.active:
     elif args.selector == "svar":
         print "Using samle variance selector."
         selector = activeselectors.SampleVariance
+    elif args.selector == "jsvar":
+        print "Using josh's pointwise sample variance selector."
+        selector = activeselectors.PointwiseSampleVariance
     else:
         print "No such selector!"
         sys.exit(1)

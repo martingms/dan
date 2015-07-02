@@ -237,3 +237,46 @@ class SampleVariance(ScoreSelector):
             },
             updates=updates
         )
+
+
+class PointwiseSampleVariance(ScoreSelector):
+    def __init__(self, trainer):
+        super(PointwiseSampleVariance, self).__init__(trainer)
+        assert self.trainer.model.dropout, \
+                "MC-sampling makes no sense without dropout."
+        n_samples = self.trainer.config['n_samples']
+        assert n_samples > 1, \
+                "This active selector does not work with less than two samples"
+
+        def sample(result):
+            return self.trainer.model.dropout_sample_output()
+
+        samples, updates = theano.scan(
+                fn=sample,
+                outputs_info=T.zeros_like(self.trainer.model.dropout_sample_output()),
+                n_steps=n_samples
+        )
+        #samples = theano.printing.Print("samples")(samples)
+
+        mean_point = T.mean(samples, axis=0)
+        #mean_point = theano.printing.Print("mean_point")(mean_point)
+
+        diff_from_mean = samples - mean_point
+        #diff_fron_mean = theano.printing.Print("diff_from_mean")(diff_from_mean)
+
+        euclid_dist_from_mean = T.sqrt(T.sum(T.sqr(diff_from_mean), axis=2))
+        #euclid_dist_from_mean = theano.printing.Print("euc_dist_from_mean")(euclid_dist_from_mean)
+
+        variances = T.var(euclid_dist_from_mean, axis=0)
+        #variances = theano.printing.Print("variances")(variances)
+
+        self.score_func = theano.function(
+            inputs=[self.trainer.start, self.trainer.stop],
+            outputs=variances,
+            givens={
+                self.trainer.model.x: self.trainer.unlabeled_set_x[
+                    self.trainer.start:self.trainer.stop
+                ],
+            },
+            updates=updates
+        )
