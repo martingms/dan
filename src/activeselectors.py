@@ -51,6 +51,7 @@ class ScoreSelector(ActiveSelector):
         return self.err_distance_func(start, stop)
 
     def select(self, n):
+        self.counter += 1
         bsize = self.trainer.config['batch_size']
         # TODO/FIXME: Should probably reuse this buffer.
         scores = np.empty(
@@ -58,16 +59,52 @@ class ScoreSelector(ActiveSelector):
             dtype=theano.config.floatX
         )
 
+        errs = np.empty(
+            (self.trainer.n_unlabeled_batches, bsize),
+            dtype=theano.config.floatX
+        )
+
         for bindex in xrange(self.trainer.n_unlabeled_batches):
-            score = self.score_func(
-                    *self.trainer._calc_unlabeled_batch_range(bindex))
+            range = self.trainer._calc_unlabeled_batch_range(bindex)
+            score = self.score_func(*range)
+            err = self.err_distance(*range)
             # The last batch can have an uneven size. In that case, we
             # pad with zeros, since they don't mess up our results with
             # np.argmax.
             if len(score) != bsize:
                 score = np.pad(score, (0, bsize-len(score)), mode='constant')
+            if len(err) != bsize:
+                err = np.pad(err, (0, bsize-len(err)), mode='mean') # correct?
 
             scores[bindex] = score
+            errs[bindex] = err
+
+        debug_scores = scores.flatten()
+        debug_errs = errs.flatten()
+        #from utils import dumpcsv
+        #dumpcsv("errvsvar.csv", zip(debug_scores, debug_errs))
+
+        print "========="
+        score_argmax = np.argmax(scores)
+        print "argmax(scores):", score_argmax
+        print "min(scores):", np.min(scores)
+        print "max(scores):", debug_scores[score_argmax]
+        print "mean(scores):", np.mean(scores)
+        print "median(scores):", np.median(scores)
+        print "========="
+        err_argmax = np.argmax(errs)
+        print "argmax(errs):", err_argmax
+        print "min(errs):", np.min(errs)
+        print "max(errs):", debug_errs[err_argmax]
+        print "mean(errs):", np.mean(errs)
+        print "median(errs):", np.median(errs)
+        print "========="
+        print "errs[argmax(scores)]:", debug_errs[score_argmax]
+        print "scores[argmax(errs)]:", debug_scores[err_argmax]
+        print "========="
+
+
+        print "#!#!", self.counter, np.mean(scores), np.mean(errs)
 
         if n is 1:
             return np.argmax(scores)

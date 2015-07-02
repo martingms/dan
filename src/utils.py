@@ -1,3 +1,4 @@
+import csv
 import theano
 import numpy as np
 import theano.tensor as T
@@ -27,3 +28,13 @@ def shared_dataset(data_xy, borrow=True):
     # ``shared_y`` we will have to cast it to int. This little hack
     # lets ous get around this issue
     return shared_x, shared_y, T.cast(shared_y, 'int32')
+
+
+def dumpcsv(path, data, delimiter=' ', quotechar='|', mode='wb'):
+    """Dump data into a csv file. `data` must be iterable and contain the
+    rows."""
+    with open(path, mode) as csvfile:
+        writer = csv.writer(csvfile, delimiter=delimiter,
+                quotechar=quotechar, quoting=csv.QUOTE_MINIMAL)
+        for row in data:
+            writer.writerow(row)
