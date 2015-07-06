@@ -54,7 +54,7 @@ class ScoreSelector(ActiveSelector):
         samples, updates = theano.scan(
                 fn=sample,
                 outputs_info=T.zeros_like(self.trainer.model.dropout_sample_output()),
-                n_steps=n_samples
+                n_steps=self.trainer.config['n_samples']
         )
         #samples = theano.printing.Print("samples")(samples)
 
