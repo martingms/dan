@@ -29,6 +29,9 @@ class Layer(object):
     def output(self):
         return self.activation(T.dot(self.input, self.W) + self.b)
 
+    def set_W(self, unshared_W):
+        self.W = theano.shared(value=unshared_W, name='W', borrow=True)
+
     @staticmethod
     def generate_W(rng, n_in, n_nodes):
         return theano.shared(value=np.asarray(
