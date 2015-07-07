@@ -23,8 +23,10 @@ class ScoreSelector(ActiveSelector):
         # TODO: Remove, debug
         # For debugging, making it possible to plot error against
         # scores to see how different selectors behave.
+        # Does not work for mnist!!!!
         start = T.lscalar()
         stop = T.lscalar()
+        """
         target = T.matrix("target")
 
         output = self.trainer.model.output()
@@ -44,6 +46,7 @@ class ScoreSelector(ActiveSelector):
                 target: self.trainer.unlabeled_set_y[start:stop]
             }
         )
+        """
 
         # TODO: Delete
         self.counter = 0
@@ -98,10 +101,12 @@ class ScoreSelector(ActiveSelector):
         )
 
         # TODO: Remove, debug
+        """
         errs = np.empty(
             (self.trainer.n_unlabeled_batches, bsize),
             dtype=theano.config.floatX
         )
+        """
         ##
 
         for bindex in xrange(self.trainer.n_unlabeled_batches):
@@ -109,7 +114,9 @@ class ScoreSelector(ActiveSelector):
             score = self.score_func(*range)
 
             # TODO: Remove, debug
+            """
             err = self.err_distance(*range)
+            """
             ##
 
             # The last batch can have an uneven size. In that case, we
@@ -119,13 +126,17 @@ class ScoreSelector(ActiveSelector):
                 score = np.pad(score, (0, bsize-len(score)), mode='constant')
 
             # TODO: Remove, debug
+            """
             if len(err) != bsize:
                 err = np.pad(err, (0, bsize-len(err)), mode='mean') # correct?
+            """
             ##
 
             scores[bindex] = score
             # TODO: Remove, debug
+            """
             errs[bindex] = err
+            """
 
         train_scores = np.empty(
             (self.trainer.n_train_batches, bsize),
@@ -143,7 +154,9 @@ class ScoreSelector(ActiveSelector):
             train_scores[bindex] = score
 
         debug_scores = scores.flatten()
+        """
         debug_errs = errs.flatten()
+        """
         debug_train_scores = train_scores.flatten()
         #from utils import dumpcsv
         #dumpcsv("errvsvar.csv", zip(debug_scores, debug_errs))
@@ -156,6 +169,7 @@ class ScoreSelector(ActiveSelector):
         print "mean(scores):", np.mean(scores)
         print "median(scores):", np.median(scores)
         print "========="
+        """
         err_argmax = np.argmax(errs)
         print "argmax(errs):", err_argmax
         print "min(errs):", np.min(errs)
@@ -166,8 +180,12 @@ class ScoreSelector(ActiveSelector):
         print "errs[argmax(scores)]:", debug_errs[score_argmax]
         print "scores[argmax(errs)]:", debug_scores[err_argmax]
         print "========="
+        """
 
+        """
         print "#!#!", self.counter, np.mean(scores), np.mean(errs), np.mean(train_scores)
+        """
+        print "#!#!", self.counter, np.mean(scores), 0, np.mean(train_scores)
         ##
 
         if n is 1:
