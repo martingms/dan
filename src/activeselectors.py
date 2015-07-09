@@ -352,7 +352,7 @@ class PointwiseSampleVariance(ScoreSelector):
         euclid_dist_from_mean = T.sqrt(T.sum(T.sqr(diff_from_mean), axis=2))
         #euclid_dist_from_mean = theano.printing.Print("euc_dist_from_mean")(euclid_dist_from_mean)
 
-        variances = T.var(euclid_dist_from_mean, axis=0)
+        variances = T.mean(euclid_dist_from_mean, axis=0)
         #variances = theano.printing.Print("variances")(variances)
 
         self.score_func = theano.function(
