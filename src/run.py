@@ -8,9 +8,9 @@ parser.add_argument('-d', '--dataset', type=str, default='mnist')
 # General MLP
 # TODO derive these from data dimensions.
 #parser.add_argument('-i', '--input', type=int, default=28*28)
-parser.add_argument('-i', '--input', type=int, default=520)
+#parser.add_argument('-i', '--input', type=int, default=520)
 #parser.add_argument('-o', '--output', type=int, default=10)
-parser.add_argument('-o', '--output', type=int, default=2)
+#parser.add_argument('-o', '--output', type=int, default=2)
 #parser.add_argument('-l', '--layers', type=int, nargs='+', default=[1000, 1000, 1000])
 parser.add_argument('-l', '--layers', type=int, nargs='+', default=[1000])
 # Dropout
@@ -50,6 +50,8 @@ import cPickle
 
 import mnist
 import ujindoor
+import gen_reg_set_load
+
 import models
 import trainers
 import activeselectors
@@ -83,11 +85,19 @@ else:
 print "Loading dataset:", args.dataset
 if args.dataset == 'mnist':
     datasets = mnist.load_data('mnist.pkl.gz')
+    inputs = 28*28
+    outputs = 10
 elif args.dataset == 'ujindoor':
     datasets = ujindoor.load_data(
         'data/UJIndoorLoc/trainingData_shuffled.csv',
         'data/UJIndoorLoc/validationData_shuffled.csv'
     )
+    inputs = 520
+    outputs = 2
+elif args.dataset == 'gen':
+    datasets = gen_reg_set_load.load_data('data/reg_gen_set.pkl.gz')
+    inputs = 800
+    outputs = 1
 else:
     print "No such dataset:", args.dataset
     sys.exit(1)
@@ -104,14 +114,14 @@ rng = np.random.RandomState(args.seed)
 
 if not args.load_pretraining_file:
     print "Generating model:",
-    layers = [args.input] + args.layers + [args.output]
+    layers = [inputs] + args.layers + [outputs]
 
     if args.dbn:
         activation_list = [T.nnet.sigmoid] * len(args.layers)
     else:
         activation_list = [T.tanh] * len(args.layers)
 
-    if args.dataset == 'ujindoor':
+    if args.dataset == 'ujindoor' or args.dataset == 'gen':
         activation_list = activation_list + [lambda x: x]
         datatype = 'float'
         output_func = lambda output: output
@@ -163,7 +173,7 @@ if args.dataset == 'mnist':
     cost_func = neg_log_cost_w_l1_l2
     error_func = errorfuncs.meanerrors
 
-elif args.dataset == 'ujindoor':
+elif args.dataset == 'ujindoor' or args.dataset == 'gen':
     def rmse(y, config):
         return model.rmse(y)
     cost_func = rmse

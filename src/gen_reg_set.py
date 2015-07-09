@@ -17,14 +17,14 @@ N_TEST= 10000
 N_INPUTS = 800
 N_OUTPUTS = 1
 
-LAYERS = [N_INPUTS, 1000, 1000, N_OUTPUTS]
+LAYERS = [N_INPUTS, 1000, N_OUTPUTS]
 ACT_LIST = ([T.nnet.sigmoid] * (len(LAYERS) - 2)) + [lambda x: x]
 
 DATA_FILENAME = 'data/reg_gen_set.pkl.gz'
 ########
 
 n_valid = N_EXAMPLES - N_TRAIN - N_TEST
-dropout_ps = [0.0, 0.0, 0.0]
+dropout_ps = [0.0, 0.0]
 
 rng = np.random.RandomState(int(time.time()))
 model = models.MLP(rng, LAYERS, ACT_LIST, dropout_ps, 'float',
@@ -51,6 +51,8 @@ print "Mean y:", np.mean(targets)
 print "Median y:", np.median(targets)
 print "y var:", np.var(targets)
 print "y std:", np.std(targets)
+
+inputs = inputs.get_value(borrow=True)
 
 train_set = (inputs[:N_TRAIN], targets[:N_TRAIN])
 valid_set = (inputs[N_TRAIN:N_TRAIN+n_valid], targets[N_TRAIN:N_TRAIN+n_valid])
