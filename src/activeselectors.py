@@ -138,6 +138,7 @@ class ScoreSelector(ActiveSelector):
             errs[bindex] = err
             """
 
+        """
         train_scores = np.empty(
             (self.trainer.n_train_batches, bsize),
             dtype=theano.config.floatX
@@ -153,10 +154,10 @@ class ScoreSelector(ActiveSelector):
             ##
             train_scores[bindex] = score
 
+        """
+        """
         debug_scores = scores.flatten()
-        """
         debug_errs = errs.flatten()
-        """
         debug_train_scores = train_scores.flatten()
         #from utils import dumpcsv
         #dumpcsv("errvsvar.csv", zip(debug_scores, debug_errs))
@@ -169,7 +170,6 @@ class ScoreSelector(ActiveSelector):
         print "mean(scores):", np.mean(scores)
         print "median(scores):", np.median(scores)
         print "========="
-        """
         err_argmax = np.argmax(errs)
         print "argmax(errs):", err_argmax
         print "min(errs):", np.min(errs)
@@ -184,8 +184,8 @@ class ScoreSelector(ActiveSelector):
 
         """
         print "#!#!", self.counter, np.mean(scores), np.mean(errs), np.mean(train_scores)
-        """
         print "#!#!", self.counter, np.mean(scores), 0, np.mean(train_scores)
+        """
         ##
 
         if n is 1:
