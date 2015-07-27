@@ -38,10 +38,12 @@ inputs = theano.shared(
                 rng.normal(scale=10.0, size=(N_EXAMPLES, N_INPUTS)),
                 borrow=True)
 
+inputs_floatX = T.cast(inputs, theano.config.floatX)
+
 targets = theano.function(
                 inputs=[],
                 outputs=model.output(),
-                givens={model.x: inputs})()
+                givens={model.x: inputs_floatX})()
 
 print "Generated dataset."
 
