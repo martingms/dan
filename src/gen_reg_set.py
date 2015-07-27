@@ -17,7 +17,7 @@ N_TEST= 10000
 N_INPUTS = 800
 N_OUTPUTS = 1
 
-LAYERS = [N_INPUTS, 1000, N_OUTPUTS]
+LAYERS = [N_INPUTS, 50, N_OUTPUTS]
 ACT_LIST = ([T.nnet.sigmoid] * (len(LAYERS) - 2)) + [lambda x: x]
 
 DATA_FILENAME = 'data/reg_gen_set.pkl.gz'
