@@ -65,7 +65,7 @@ class ScoreSelector(ActiveSelector):
         #mean_point = theano.printing.Print("mean_point")(mean_point)
 
         diff_from_mean = samples - mean_point
-        #diff_fron_mean = theano.printing.Print("diff_from_mean")(diff_from_mean)
+        #diff_from_mean = theano.printing.Print("diff_from_mean")(diff_from_mean)
 
         euclid_dist_from_mean = T.sqrt(T.sum(T.sqr(diff_from_mean), axis=2))
         #euclid_dist_from_mean = theano.printing.Print("euc_dist_from_mean")(euclid_dist_from_mean)
