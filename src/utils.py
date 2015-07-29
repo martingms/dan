@@ -38,3 +38,15 @@ def dumpcsv(path, data, delimiter=' ', quotechar='|', mode='wb'):
                 quotechar=quotechar, quoting=csv.QUOTE_MINIMAL)
         for row in data:
             writer.writerow(row)
+
+def normalize(A, range_=(0,1)):
+    """Normalize a tensor to `range_`"""
+    min_ = np.min(A)
+    zero_one = (A - min_)/(np.max(A) - min_)
+
+    if range_ == (0,1):
+        return zero_one
+
+    x, y = range_
+    diff = y - x
+    return (zero_one * diff) + x
