@@ -49,6 +49,7 @@ import theano.tensor as T
 import cPickle
 
 import mnist
+import mnist_regression
 import ujindoor
 import gen_reg_set_load
 
@@ -87,6 +88,10 @@ if args.dataset == 'mnist':
     datasets = mnist.load_data('mnist.pkl.gz')
     inputs = 28*28
     outputs = 10
+elif args.dataset == 'mnistreg':
+    datasets = mnist_regression.load_data('mnist.pkl.gz')
+    inputs = 28*28
+    outputs = 10
 elif args.dataset == 'ujindoor':
     datasets = ujindoor.load_data(
         'data/UJIndoorLoc/trainingData_shuffled.csv',
@@ -121,8 +126,12 @@ if not args.load_pretraining_file:
     else:
         activation_list = [T.tanh] * len(args.layers)
 
-    if args.dataset == 'ujindoor' or args.dataset == 'gen':
+    if args.dataset == 'ujindoor':
         activation_list = activation_list + [lambda x: x]
+        datatype = 'float'
+        output_func = lambda output: output
+    elif args.dataset == 'mnistreg' or args.dataset == 'gen':
+        activation_list = activation_list + [T.nnet.sigmoid]
         datatype = 'float'
         output_func = lambda output: output
     elif args.dataset == 'mnist':
@@ -173,7 +182,7 @@ if args.dataset == 'mnist':
     cost_func = neg_log_cost_w_l1_l2
     error_func = errorfuncs.meanerrors
 
-elif args.dataset == 'ujindoor' or args.dataset == 'gen':
+elif args.dataset == 'ujindoor' or args.dataset == 'gen' or args.dataset == 'mnistreg':
     def rmse(y, config):
         return model.rmse(y)
     cost_func = rmse
